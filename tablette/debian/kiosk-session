@@ -1,0 +1,17 @@
+#!/bin/bash
+# /usr/local/bin/kiosk-session (Debian)
+# X session for the touchscreen: fullscreen window manager + the app from /root/kiosk-app.sh, restarted if it exits.
+export DISPLAY=:0 LANG=fr_FR.UTF-8 HOME=/root
+for i in $(seq 1 30); do xdpyinfo >/dev/null 2>&1 && break; sleep 1; done
+xset s off -dpms s noblank 2>/dev/null
+matchbox-window-manager -use_titlebar no -use_cursor no &
+while true; do
+  if [ -x /root/kiosk-app.sh ]; then
+    setsid /root/kiosk-app.sh &
+    echo $! > /tmp/kiosk-app.pid
+    wait $!
+  else
+    sleep 5
+  fi
+  sleep 2
+done

@@ -1,0 +1,3 @@
+#!/data/data/com.termux/files/usr/bin/bash
+pkill -f kiosk-session; pkill -f 'termux-x11 com.termux.x11'
+echo stopped

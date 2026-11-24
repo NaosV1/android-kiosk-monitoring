@@ -1,0 +1,18 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Starts everything (idempotent): Termux sshd :8022, Debian via sshd :2222, X server :0, kiosk app.
+# A placer dans ~/bin/linux-start (Termux) ; lance au demarrage par ~/.termux/boot/00-linux
+LOG=$HOME/linux-start.log
+exec >>"$LOG" 2>&1
+echo "--- $(date) linux-start"
+termux-wake-lock 2>/dev/null || true
+pgrep -x sshd >/dev/null || sshd
+if ! pgrep -f 'termux-x11 com.termux.x11' >/dev/null; then
+  setsid nohup termux-x11 :0 -ac </dev/null >>"$HOME/x11.log" 2>&1 &
+  for i in $(seq 1 20); do [ -S "$PREFIX/tmp/.X11-unix/X0" ] && break; sleep 0.5; done
+fi
+if ! pgrep -f kiosk-session >/dev/null; then
+  setsid nohup proot-distro login debian --shared-tmp -- /usr/local/bin/kiosk-session </dev/null >>"$HOME/kiosk.log" 2>&1 &
+fi
+pgrep -f plein-ecran-auto >/dev/null || setsid nohup "$HOME/bin/plein-ecran-auto" </dev/null >>"$HOME/plein-ecran.log" 2>&1 &
+sleep 1
+am start --user 0 -n com.termux.x11/.MainActivity >/dev/null 2>&1 || true

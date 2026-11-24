@@ -1,0 +1,128 @@
+# Configuration du monitoring de la tablette
+# Copie ce fichier en config.toml, adapte-le, puis :  kiosk-restart
+# (les adresses ci-dessous sont des exemples : exemple.fr, 203.0.113.x et 10.0.0.x)
+
+[general]
+intervalle = 30            # secondes entre deux controles d'une node
+delai = 10                 # temps max d'une reponse, en secondes
+seuil_lent = 1000          # au-dela (en ms), la node est consideree comme lente
+echecs_avant_panne = 2     # echecs d'affilee avant de declarer une node hors ligne
+veille_minutes = 5         # passage en ecran de veille sans toucher l'ecran (0 = jamais)
+verifier_certificats = true
+# ecoute = "0.0.0.0"       # decommente pour ouvrir l'interface depuis ton PC : http://<IP tablette>:8080
+# port = 8080
+
+[tailscale]
+actif = false              # true : la tablette doit etre sur le tailnet (alerte sinon)
+cle_api = ""               # cle API Tailscale (tskey-api-...) pour la liste des appareils
+tailnet = "-"              # "-" = le tailnet de la cle
+nom_tablette = ""          # nom de la tablette dans le tailnet
+
+# ---------------------------------------------------------------------------
+# Services
+#
+# Un service avec une seule node :
+#   [[service]]
+#   nom = "Nextcloud"
+#   url = "https://cloud.exemple.fr/status.php"
+#
+# Un service avec plusieurs nodes :
+#   [[service]]
+#   nom = "API"
+#   adresse = "api.exemple.fr"           # texte affiche sous le nom (facultatif)
+#   tag = "Mes services"                 # groupe sur l'accueil (ordre = 1re apparition)
+#   nodes = [
+#     { nom = "api-1", url = "https://100.101.12.21/health", lieu = "Falkenstein" },
+#     { nom = "api-2", url = "https://100.101.12.22/health", lieu = "Nuremberg" },
+#   ]
+#
+# Types de controle d'une node :
+#   url  = "https://..."          requete HTTP(S)
+#   tcp  = "100.101.12.30:5432"   port TCP ouvert (base de donnees, SSH...)
+#   ping = "1.1.1.1"              ping ICMP IPv4
+#   dns  = "google.com"           resolution du nom par le DNS de la tablette
+#
+# Options d'une node HTTP :
+#   code = 200                    code HTTP attendu (sinon 2xx/3xx acceptes)
+#   contient = "ok"               texte attendu dans la reponse
+#   json = { status = "ok", database.connected = true }
+#                                 champs attendus dans la reponse JSON
+#   ip = "203.0.113.10"           interroge ce serveur precis au lieu du DNS
+#                                 (meme nom, meme certificat : comme curl --resolve)
+#   verifier_certificat = false   accepte un certificat non reconnu (autorite interne)
+#
+# Options de toutes les nodes :
+#   resolveur = "10.0.0.53"       resout le nom avec ce serveur DNS (ex. DNS interne)
+#   par_tailscale = true          le controle doit passer par le tunnel Tailscale ;
+#                                 sinon echec "Pas de route Tailscale" (sans rien envoyer)
+#   lieu = "Paris"                texte affiche sous le nom de la node
+# ---------------------------------------------------------------------------
+
+# --- Reseau ------------------------------------------------------------------
+
+[[service]]
+nom = "Internet"
+tag = "Network"
+adresse = "ping 1.1.1.1 · 8.8.8.8"
+nodes = [
+  { nom = "1.1.1.1", ping = "1.1.1.1", lieu = "Cloudflare" },
+  { nom = "8.8.8.8", ping = "8.8.8.8", lieu = "Google" },
+]
+
+[[service]]
+nom = "DNS"
+tag = "Network"
+dns = "google.com"
+
+# --- Services publics ---------------------------------------------------------
+
+[[service]]
+nom = "Site"
+tag = "Mes services"
+url = "https://www.exemple.fr"
+code = 200
+
+[[service]]
+nom = "API"
+tag = "Mes services"
+adresse = "api.exemple.fr/health"
+
+  [[service.nodes]]               # autre facon d'ecrire les nodes, plus lisible
+  nom = "srv1"
+  url = "https://api.exemple.fr/health"
+  ip = "203.0.113.10"             # chaque serveur derriere le meme nom, interroge a part
+  code = 200
+  json = { status = "ok", database.connected = true }
+
+  [[service.nodes]]
+  nom = "srv2"
+  url = "https://api.exemple.fr/health"
+  ip = "203.0.113.20"
+  code = 200
+  json = { status = "ok", database.connected = true }
+
+# --- Reseau prive joint par Tailscale (route de sous-reseau) -------------------
+
+[[service]]
+nom = "Routeur"
+tag = "Bureau"
+ping = "10.0.0.1"
+par_tailscale = true
+lieu = "Réseau du bureau"
+
+[[service]]
+nom = "Intranet"
+tag = "Bureau"
+url = "https://intranet.exemple.fr"
+resolveur = "10.0.0.53"           # le DNS interne donne l'adresse privee
+par_tailscale = true
+code = 200
+verifier_certificat = false       # certificat d'une autorite interne
+lieu = "Réseau du bureau"
+
+[[service]]
+nom = "Base de données"
+tag = "Bureau"
+tcp = "10.0.0.20:5432"
+par_tailscale = true
+lieu = "Réseau du bureau"

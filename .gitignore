@@ -1,0 +1,12 @@
+# configuration reelle (services, adresses internes, cle API Tailscale)
+monitoring/config.toml
+monitoring/config.toml.*
+# donnees et journaux du serveur
+monitoring/data.db*
+monitoring/*.log
+__pycache__/
+# appli Kiosque : jeton, cle de signature et APK generes
+*.apk
+*.keystore
+.kiosk-token
+.kiosk-keypass

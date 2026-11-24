@@ -1,0 +1,4 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Termux:Boot : ~/.termux/boot/00-linux
+sleep 5
+exec $HOME/bin/linux-start

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="fr.tablette.kiosque"
+    android:versionCode="2"
+    android:versionName="1.1">
+
+    <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="29" />
+
+    <application
+        android:label="Kiosque"
+        android:allowBackup="false"
+        android:testOnly="true">
+
+        <!-- Device owner component -->
+        <receiver
+            android:name=".Admin"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Remote control (lock / unlock / release / status), token protected -->
+        <receiver
+            android:name=".Control"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="fr.tablette.kiosque.LOCK" />
+                <action android:name="fr.tablette.kiosque.UNLOCK" />
+                <action android:name="fr.tablette.kiosque.RELEASE" />
+                <action android:name="fr.tablette.kiosque.STATUS" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".Home"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:lockTaskMode="if_whitelisted"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- Receives Tailscale login links (no browser on the tablet) and logs them -->
+        <activity
+            android:name=".Lien"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="login.tailscale.com" />
+            </intent-filter>
+        </activity>
+
+        <!-- HOME entry, enabled only while the kiosk is locked -->
+        <activity-alias
+            android:name=".HomeAlias"
+            android:targetActivity=".Home"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+    </application>
+</manifest>

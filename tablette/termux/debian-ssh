@@ -1,0 +1,9 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# SSH port 2222 entry point: every session runs inside Debian (proot).
+# Voir sshd_config.extrait (ForceCommand sur le port 2222).
+cmd="$SSH_ORIGINAL_COMMAND"
+case "$cmd" in
+  *sftp-server*|internal-sftp) exec proot-distro login debian --shared-tmp -- /usr/lib/openssh/sftp-server ;;
+  "") exec proot-distro login debian --shared-tmp ;;
+  *)  exec proot-distro login debian --shared-tmp -- /bin/bash -lc "$cmd" ;;
+esac

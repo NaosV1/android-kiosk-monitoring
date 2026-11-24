@@ -1,0 +1,23 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Pilote l'appli Kiosque : kiosk lock | unlock | status | release | plein-ecran
+case "$1" in
+  lock|unlock|status|release) ;;
+  plein-ecran)
+    # Remasque les barres Android si elles sont restees affichees au-dessus de l'appli
+    am broadcast --user 0 -a com.termux.x11.CHANGE_PREFERENCE -p com.termux.x11 -e fullscreen false >/dev/null 2>&1
+    sleep 1
+    am broadcast --user 0 -a com.termux.x11.CHANGE_PREFERENCE -p com.termux.x11 -e fullscreen true >/dev/null 2>&1
+    echo "plein ecran reapplique"
+    exit 0 ;;
+  *) echo "usage: kiosk lock|unlock|status|release|plein-ecran"
+     echo "  lock        : verrouille la tablette sur l'ecran Linux"
+     echo "  unlock      : rend Android (accueil, notifications) jusqu'au prochain 'kiosk lock'"
+     echo "  status      : etat actuel"
+     echo "  release     : retire definitivement le mode proprietaire (Android normal)"
+     echo "  plein-ecran : remasque les barres Android si elles sont visibles"
+     exit 1 ;;
+esac
+ACTION=$(echo "$1" | tr a-z A-Z)
+out=$(am broadcast --user 0 -n fr.tablette.kiosque/.Control -a "fr.tablette.kiosque.$ACTION" \
+      --es token "$(cat ~/.kiosk-token)" 2>&1)
+echo "$out" | grep -o 'data="[^"]*"' | sed 's/data=//; s/"//g' || echo "$out"

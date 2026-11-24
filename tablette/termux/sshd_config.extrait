@@ -1,0 +1,9 @@
+# A ajouter a la fin de $PREFIX/etc/ssh/sshd_config (Termux).
+# Port 8022 : shell Termux (maintenance) ; port 2222 : directement dans Debian.
+PasswordAuthentication no
+# >>> tablette
+Port 8022
+Port 2222
+Match LocalPort 2222
+    ForceCommand /data/data/com.termux/files/home/bin/debian-ssh
+# <<< tablette
