@@ -5,23 +5,29 @@
 - controle chaque node (HTTP/HTTPS, TCP, ping ICMP ou resolution DNS) a intervalle regulier
 - garde l'historique dans data.db (SQLite)
 - interroge l'API Tailscale si une cle est configuree
+- cherche les nouvelles releases GitHub, les telecharge, et les installe sur demande
 - sert l'interface tactile (dossier web/) et une petite API JSON
 
 Uniquement la bibliotheque standard de Python (3.11+).
 """
 import errno
+import hashlib
 import http.client
 import ipaddress
 import itertools
-import random
 import json
 import os
+import random
 import re
+import shlex
+import shutil
 import socket
 import sqlite3
 import ssl
 import struct
+import subprocess
 import sys
+import tarfile
 import threading
 import time
 import tomllib
@@ -38,6 +44,9 @@ ICI = Path(__file__).resolve().parent
 CONFIG = Path(os.environ.get("MONITORING_CONFIG", ICI / "config.toml"))
 BASE = Path(os.environ.get("MONITORING_DB", ICI / "data.db"))
 WEB = ICI / "web"
+DOSSIER_MAJ = ICI / ".maj"           # archives telechargees, sauvegarde de la version precedente
+FICHIER_VERSION = ICI / "VERSION"    # ecrit dans chaque release par la CI ; absent = installation manuelle
+FICHIERS_CODE = ("serveur.py", "lancer.sh", "config.example.toml", "VERSION")  # + le dossier web/
 
 JOUR = 86400
 SEAU = 1200          # 20 min : largeur d'un point des courbes 24 h
@@ -118,6 +127,11 @@ def lire_config():
         "tailnet": str(t.get("tailnet", "-")).strip() or "-",
         "nom_tablette": str(t.get("nom_tablette", "")).strip(),
     }
+    m = brut.get("mise_a_jour", {})
+    depot = str(m.get("depot", "")).strip().strip("/")
+    if depot and not re.fullmatch(r"[\w.-]+/[\w.-]+", depot):
+        raise ValueError(f"mise_a_jour.depot doit etre de la forme proprietaire/depot ({depot!r})")
+    conf["maj"] = {"depot": depot, "heures": max(1.0, float(m.get("verifier_toutes_les_heures", 6)))}
     services, vus = [], set()
     for s in brut.get("service", []):
         nom = str(s["nom"])
@@ -896,6 +910,267 @@ class Moniteur:
 
 
 # --------------------------------------------------------------------------
+# Mises a jour (releases GitHub)
+#
+# La CI publie une release par push sur main : monitoring-<version>.tar.gz + SHA256SUMS.
+# Le serveur verifie periodiquement la derniere release, la telecharge et controle
+# son empreinte, puis attend qu'on appuie sur "Mettre a jour" (avec confirmation).
+# L'installation garde config.toml et data.db, sauvegarde la version en place dans
+# .maj/precedente, puis relance l'appli ; lancer.sh revient a la version precedente
+# si la nouvelle ne demarre pas.
+# --------------------------------------------------------------------------
+
+def version_locale():
+    try:
+        return FICHIER_VERSION.read_text(encoding="utf-8").strip() or "dev"
+    except OSError:
+        return "dev"
+
+
+def cle_version(v):
+    """'v1.0.12' -> (1, 0, 12) ; version inconnue ('dev') -> () : plus ancienne que toutes les releases."""
+    v = str(v).strip().lstrip("vV")
+    return tuple(int(x) for x in v.split(".")) if re.fullmatch(r"\d+(\.\d+)*", v) else ()
+
+
+def sha256_fichier(chemin):
+    h = hashlib.sha256()
+    with open(chemin, "rb") as f:
+        for bloc in iter(lambda: f.read(1 << 16), b""):
+            h.update(bloc)
+    return h.hexdigest()
+
+
+def relancer_appli():
+    """Relance l'appli (serveur + Chromium) via kiosk-restart, depuis un processus detache
+    qui survit a l'arret du groupe de processus de l'appli."""
+    cmd = shutil.which("kiosk-restart") or "/usr/local/bin/kiosk-restart"
+    if not os.path.exists(cmd):
+        return False
+    subprocess.Popen(["bash", "-c", f"sleep 2; exec {shlex.quote(cmd)}"], start_new_session=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return True
+
+
+class MisesAJour:
+    TAILLE_MAX = 30 * 1024 * 1024
+
+    def __init__(self, conf):
+        self.depot = conf["maj"]["depot"]
+        self.periode = conf["maj"]["heures"] * 3600
+        self.verrou = threading.Lock()
+        self.reveil = threading.Event()
+        retour = None
+        try:  # message laisse par lancer.sh si une nouvelle version n'a pas demarre
+            retour = (DOSSIER_MAJ / "retour-arriere").read_text(encoding="utf-8").strip() or None
+        except OSError:
+            pass
+        derniere = None
+        try:
+            derniere = json.loads((DOSSIER_MAJ / "derniere-installation.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pass
+        self.etat = {"actuelle": version_locale(), "depot": self.depot, "heures": conf["maj"]["heures"],
+                     "statut": "desactive" if not self.depot else "inconnu",
+                     "verifie": None, "en_cours": False, "erreur": retour, "disponible": None,
+                     "derniere_installation": derniere}
+
+    def resume(self):
+        with self.verrou:
+            return json.loads(json.dumps(self.etat))
+
+    def _poser(self, **valeurs):
+        with self.verrou:
+            self.etat.update(valeurs)
+
+    @staticmethod
+    def _requete(url, accept="application/vnd.github+json"):
+        req = urllib.request.Request(url, headers={"Accept": accept, "User-Agent": "tablette-monitoring",
+                                                   "X-GitHub-Api-Version": "2022-11-28"})
+        return urllib.request.urlopen(req, timeout=30, context=ssl.create_default_context())
+
+    def _telecharger(self, url, destination):
+        partiel = destination.with_name(destination.name + ".part")
+        taille = 0
+        with self._requete(url, "application/octet-stream") as rep, open(partiel, "wb") as f:
+            while bloc := rep.read(1 << 16):
+                taille += len(bloc)
+                if taille > self.TAILLE_MAX:
+                    raise Echec("Archive trop grosse")
+                f.write(bloc)
+        os.replace(partiel, destination)
+
+    @staticmethod
+    def _controler_archive(chemin, version):
+        """Refuse toute archive qui sortirait de son dossier ou contiendrait des liens."""
+        racine = f"monitoring-{version}"
+        contenu = set()
+        with tarfile.open(chemin, "r:gz") as t:
+            for m in t.getmembers():
+                parties = Path(m.name).parts
+                if not parties or parties[0] != racine or ".." in parties or m.name.startswith("/"):
+                    raise Echec(f"Archive refusée : chemin inattendu ({m.name[:60]})")
+                if not (m.isfile() or m.isdir()):
+                    raise Echec("Archive refusée : lien ou fichier spécial")
+                contenu.add("/".join(parties[1:]))
+        manquants = [f for f in ("serveur.py", "lancer.sh", "VERSION", "web/index.html") if f not in contenu]
+        if manquants:
+            raise Echec(f"Archive incomplète : {', '.join(manquants)} manquant")
+
+    def verifier(self):
+        """Cherche la derniere release ; si elle est plus recente, la telecharge et la verifie."""
+        if not self.depot or self.etat["statut"] in ("installation", "redemarrage"):
+            return
+        self._poser(en_cours=True)
+        try:
+            try:
+                with self._requete(f"https://api.github.com/repos/{self.depot}/releases/latest") as rep:
+                    rel = json.load(rep)
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    self._poser(statut="a_jour", disponible=None, erreur=None)
+                    return
+                raise Echec(f"GitHub : erreur HTTP {e.code}") from e
+            except Exception as e:  # noqa: BLE001
+                raise Echec(f"GitHub injoignable ({raison(e, 30)})") from e
+            tag = str(rel.get("tag_name", ""))
+            version = tag.lstrip("vV")
+            if not cle_version(version):
+                raise Echec(f"Release sans numéro de version lisible ({tag[:30]})")
+            if cle_version(version) <= cle_version(self.etat["actuelle"]):
+                self._poser(statut="a_jour", disponible=None, erreur=None)
+                return
+            publiee = None
+            if rel.get("published_at"):
+                publiee = int(datetime.fromisoformat(rel["published_at"].replace("Z", "+00:00")).timestamp())
+            dispo = {"version": version, "publiee": publiee, "notes": str(rel.get("body") or "")[:4000],
+                     "url": rel.get("html_url")}
+            fichiers = {a.get("name"): a.get("browser_download_url") for a in rel.get("assets", [])}
+            nom = f"monitoring-{version}.tar.gz"
+            if nom not in fichiers or "SHA256SUMS" not in fichiers:
+                raise Echec(f"Release v{version} incomplète (archive ou SHA256SUMS manquant)")
+            with self._requete(fichiers["SHA256SUMS"], "application/octet-stream") as rep:
+                sommes = rep.read(65536).decode("utf-8", "replace")
+            attendu = next((l.split()[0].lower() for l in sommes.splitlines()
+                            if len(l.split()) == 2 and l.split()[1].lstrip("*") == nom), None)
+            if not attendu:
+                raise Echec(f"Empreinte de {nom} absente de SHA256SUMS")
+            DOSSIER_MAJ.mkdir(exist_ok=True)
+            archive = DOSSIER_MAJ / nom
+            if not (archive.exists() and sha256_fichier(archive) == attendu):
+                self._poser(statut="telechargement", disponible=dispo)
+                self._telecharger(fichiers[nom], archive)
+                if sha256_fichier(archive) != attendu:
+                    archive.unlink(missing_ok=True)
+                    raise Echec("Archive téléchargée corrompue (empreinte différente)")
+                log(f"mise a jour v{version} telechargee et verifiee")
+            self._controler_archive(archive, version)
+            for ancienne in DOSSIER_MAJ.glob("monitoring-*.tar.gz*"):
+                if ancienne.name != nom:
+                    ancienne.unlink(missing_ok=True)
+            with self.verrou:
+                if self.etat["statut"] != "installation":
+                    self.etat.update(statut="prete", disponible=dispo, erreur=None)
+        except Echec as e:
+            self._poser(erreur=str(e), statut="erreur" if not self.etat["disponible"] else self.etat["statut"])
+        finally:
+            self._poser(en_cours=False, verifie=int(time.time()))
+
+    def boucle(self):
+        if not self.depot:
+            return
+        self.reveil.wait(60)          # laisse le reseau se mettre en place au demarrage
+        while True:
+            self.reveil.clear()
+            try:
+                self.verifier()
+            except Exception as e:  # noqa: BLE001
+                log("verification des mises a jour :", repr(e))
+                self._poser(erreur=f"Erreur interne : {e}"[:200], en_cours=False)
+            self.reveil.wait(self.periode)
+
+    def verifier_maintenant(self):
+        self.reveil.set()
+
+    def installer(self, version):
+        with self.verrou:
+            d = self.etat["disponible"]
+            if self.etat["statut"] != "prete" or not d or d["version"] != version:
+                return False, "Aucune mise à jour prête pour cette version"
+            self.etat["statut"] = "installation"
+        threading.Thread(target=self._installer, args=(version,), daemon=True).start()
+        return True, None
+
+    def _installer(self, version):
+        ancienne = self.etat["actuelle"]
+        extrait = DOSSIER_MAJ / f"extrait-{version}"
+        precedente = DOSSIER_MAJ / "precedente"
+        sauvegarde_faite = False
+        try:
+            archive = DOSSIER_MAJ / f"monitoring-{version}.tar.gz"
+            self._controler_archive(archive, version)
+            shutil.rmtree(extrait, ignore_errors=True)
+            with tarfile.open(archive, "r:gz") as t:
+                t.extractall(extrait, filter="data")
+            neuf = extrait / f"monitoring-{version}"
+            if (neuf / "VERSION").read_text(encoding="utf-8").strip() != version:
+                raise Echec("VERSION de l'archive incohérente")
+            compile((neuf / "serveur.py").read_text(encoding="utf-8"), "serveur.py", "exec")
+
+            # sauvegarde de la version en place (pour le retour arriere de lancer.sh)
+            shutil.rmtree(precedente, ignore_errors=True)
+            precedente.mkdir(parents=True)
+            for nom in FICHIERS_CODE:
+                if (ICI / nom).is_file():
+                    shutil.copy2(ICI / nom, precedente / nom)
+            (precedente / "VERSION").write_text(ancienne + "\n", encoding="utf-8")
+            shutil.copytree(WEB, precedente / "web")
+            sauvegarde_faite = True
+            (DOSSIER_MAJ / "a-confirmer").write_text(version + "\n", encoding="utf-8")
+
+            # remplacement fichier par fichier (os.replace est atomique)
+            for nom in FICHIERS_CODE:
+                if (neuf / nom).is_file():
+                    tmp = ICI / f".{nom}.nouveau"
+                    shutil.copy2(neuf / nom, tmp)
+                    os.replace(tmp, ICI / nom)
+            web_neuf, web_ancien = ICI / ".web.nouveau", ICI / ".web.ancien"
+            shutil.rmtree(web_neuf, ignore_errors=True)
+            shutil.rmtree(web_ancien, ignore_errors=True)
+            shutil.copytree(neuf / "web", web_neuf)
+            os.rename(WEB, web_ancien)
+            os.rename(web_neuf, WEB)
+            shutil.rmtree(web_ancien, ignore_errors=True)
+            for nom in ("serveur.py", "lancer.sh"):
+                os.chmod(ICI / nom, 0o755)
+            (DOSSIER_MAJ / "derniere-installation.json").write_text(json.dumps(
+                {"version": version, "depuis": ancienne, "quand": int(time.time())}), encoding="utf-8")
+            (DOSSIER_MAJ / "retour-arriere").unlink(missing_ok=True)
+            shutil.rmtree(extrait, ignore_errors=True)
+            log(f"mise a jour installee : {ancienne} -> {version}, relance de l'appli")
+            if relancer_appli():
+                self._poser(statut="redemarrage")
+            else:
+                self._poser(statut="redemarrage", erreur="Installée : relance l'appli à la main (kiosk-restart)")
+        except Exception as e:  # noqa: BLE001
+            log("echec de la mise a jour :", repr(e))
+            if sauvegarde_faite:  # remet la version en place telle qu'elle etait
+                try:
+                    for nom in FICHIERS_CODE:
+                        if (precedente / nom).is_file():
+                            shutil.copy2(precedente / nom, ICI / nom)
+                    shutil.rmtree(WEB, ignore_errors=True)
+                    shutil.copytree(precedente / "web", WEB)
+                    for reste in (".web.nouveau", ".web.ancien"):
+                        shutil.rmtree(ICI / reste, ignore_errors=True)
+                    (DOSSIER_MAJ / "a-confirmer").unlink(missing_ok=True)
+                except OSError as e2:
+                    log("restauration impossible :", repr(e2))
+            shutil.rmtree(extrait, ignore_errors=True)
+            self._poser(statut="prete", erreur=f"Installation impossible : {e}"[:200])
+
+
+# --------------------------------------------------------------------------
 # Serveur HTTP
 # --------------------------------------------------------------------------
 
@@ -904,7 +1179,7 @@ TYPES = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
          ".json": "application/json", ".woff2": "font/woff2"}
 
 
-def creer_gestionnaire(moniteur):
+def creer_gestionnaire(moniteur, maj):
     class Gestionnaire(BaseHTTPRequestHandler):
         server_version = "tablette-monitoring"
 
@@ -926,7 +1201,9 @@ def creer_gestionnaire(moniteur):
             chemin = urllib.parse.urlparse(self.path).path
             try:
                 if chemin == "/api/etat":
-                    return self.json(moniteur.etat_json())
+                    etat = moniteur.etat_json()
+                    etat["maj"] = maj.resume()
+                    return self.json(etat)
                 if chemin.startswith("/api/service/"):
                     rep = moniteur.service_json(urllib.parse.unquote(chemin[len("/api/service/"):]))
                     return self.json(rep) if rep else self.json({"erreur": "service inconnu"}, 404)
@@ -952,6 +1229,18 @@ def creer_gestionnaire(moniteur):
             if m:
                 moniteur.relancer(urllib.parse.unquote(m.group(1)) if m.group(1) else None)
                 return self.json({"ok": True})
+            if chemin == "/api/maj/verifier":
+                maj.verifier_maintenant()
+                return self.json({"ok": True})
+            if chemin == "/api/maj/installer":
+                # la version demandee doit etre exactement celle proposee (confirmation cote ecran)
+                try:
+                    longueur = min(int(self.headers.get("Content-Length") or 0), 4096)
+                    version = str(json.loads(self.rfile.read(longueur) or b"{}").get("version", ""))
+                except (ValueError, AttributeError):
+                    return self.json({"erreur": "requête invalide"}, 400)
+                ok, erreur = maj.installer(version)
+                return self.json({"ok": True}) if ok else self.json({"erreur": erreur}, 409)
             self.json({"erreur": "inconnu"}, 404)
 
     return Gestionnaire
@@ -967,9 +1256,12 @@ def main():
     moniteur = Moniteur(conf)
     log(f"{len(conf['services'])} services, {len(moniteur.nodes)} nodes, "
         f"Tailscale actif={conf['tailscale']['actif']} api={'oui' if conf['tailscale']['cle_api'] else 'non'}")
+    maj = MisesAJour(conf)
+    log(f"version {maj.etat['actuelle']}, mises a jour : {conf['maj']['depot'] or 'desactivees'}")
     threading.Thread(target=moniteur.boucle_controles, daemon=True).start()
     threading.Thread(target=moniteur.boucle_tailscale, daemon=True).start()
-    serveur = ThreadingHTTPServer((conf["ecoute"], conf["port"]), creer_gestionnaire(moniteur))
+    threading.Thread(target=maj.boucle, daemon=True).start()
+    serveur = ThreadingHTTPServer((conf["ecoute"], conf["port"]), creer_gestionnaire(moniteur, maj))
     serveur.daemon_threads = True
     log(f"interface sur http://{conf['ecoute']}:{conf['port']}/")
     serveur.serve_forever()

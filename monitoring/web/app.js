@@ -11,6 +11,9 @@ const S = {
   ouvertsConnus: null,
   doigt: false, renduEnAttente: false,
   toast: null,
+  confirmerMaj: null,        // version en attente de confirmation (fenetre ouverte)
+  majEnvoyee: null,          // version dont l'installation a ete demandee
+  toastMajVu: false,
 };
 
 // ------------------------------------------------------------------ outils
@@ -66,6 +69,7 @@ const D = {
   tablette: '<rect x="4.5" y="3" width="15" height="18" rx="2"/><path d="M11 18h2"/>',
   ordi: '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/>',
   tel: '<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>',
+  maj: '<path d="M12 3.5v11"/><path d="M7.5 10l4.5 4.5 4.5-4.5"/><path d="M4.5 19.5h15"/>',
 };
 function iconeEtat(etat, taille = 16) {
   const c = HEX[etat] || HEX.inconnu;
@@ -112,11 +116,14 @@ function rail(page) {
   const lien = (href, cle, libelle, icone, extra = '') =>
     `<a href="${href}" class="rail-lien appui${page === cle ? ' actif' : ''}"${page === cle ? ' aria-current="page"' : ''}>${svg(icone)}<span>${libelle}</span>${extra}</a>`;
   const badge = ouverts.length ? `<span class="pastille ${pire(ouverts)}">${ouverts.length}</span>` : '';
+  const m = S.etat && S.etat.maj;
+  const badgeMaj = m && m.disponible && (m.statut === 'prete' || m.statut === 'telechargement') ? '<span class="pastille info">1</span>' : '';
   return `<nav class="rail" aria-label="Navigation principale">
     <div class="logo">${svg(D.pouls, 26, 2, '#6CB6FF')}</div>
     ${lien('#/', 'accueil', 'Accueil', D.accueil)}
     ${lien('#/tailscale', 'tailscale', 'Tailscale', D.tailscale)}
     ${lien('#/incidents', 'incidents', 'Incidents', D.cloche, badge)}
+    ${lien('#/maj', 'maj', 'Mise à jour', D.maj, badgeMaj)}
     <a href="#/veille" class="rail-lien bas appui">${svg(D.lune)}<span>Veille</span></a>
   </nav>`;
 }
@@ -504,6 +511,94 @@ function pageIncidents() {
   </main></div>`;
 }
 
+// ------------------------------------------------------------------ Mise a jour
+const nomVersion = (v) => (!v || v === 'dev' ? 'dev' : `v${v}`);
+
+// Notes de release (texte brut de GitHub) : lignes "- ..." en liste, le reste en paragraphes.
+function notesRelease(texte) {
+  const lignes = String(texte || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lignes.length) return '<p class="discret">Pas de notes pour cette version.</p>';
+  let html = '', liste = false;
+  for (const l of lignes) {
+    const puce = /^[-*] /.test(l);
+    if (puce && !liste) { html += '<ul>'; liste = true; }
+    if (!puce && liste) { html += '</ul>'; liste = false; }
+    const t = esc(l.replace(/^[-*] /, '').replace(/^#+\s*/, ''));
+    html += puce ? `<li>${t}</li>` : `<p>${t}</p>`;
+  }
+  return html + (liste ? '</ul>' : '');
+}
+
+function pageMaj() {
+  const m = S.etat.maj;
+  const d = m.disponible;
+  const etiquettes = {
+    a_jour: '<span class="etiquette up up"><span class="point"></span><span>À jour</span></span>',
+    prete: '<span class="etiquette info">Nouvelle version disponible</span>',
+    telechargement: '<span class="etiquette info">Téléchargement…</span>',
+    erreur: '<span class="etiquette warn warn">Erreur</span>',
+    desactive: '<span class="etiquette inconnu inconnu">Désactivée</span>',
+    inconnu: '<span class="etiquette inconnu inconnu">Pas encore vérifiée</span>',
+  };
+  const etiquette = etiquettes[m.statut] || '';
+  const sous = m.depot
+    ? `Dépôt <span class="mono">${esc(m.depot)}</span> · ${m.en_cours ? 'vérification en cours…' : `vérifiée ${ilya(m.verifie)}`} · toutes les ${m.heures} h`
+    : 'Ajoute une section [mise_a_jour] avec le dépôt GitHub dans config.toml';
+  const bouton = m.depot
+    ? `<button type="button" class="bouton appui" data-action="maj-verifier"${m.en_cours ? ' disabled' : ''}>${svg(D.relancer, 22, 2)}<span>${m.en_cours ? 'Vérification…' : 'Vérifier maintenant'}</span></button>` : '';
+
+  const di = m.derniere_installation;
+  const installee = di && di.version === m.actuelle
+    ? `installée ${ilya(di.quand)} · avant : ${esc(nomVersion(di.depuis))}`
+    : m.actuelle === 'dev' ? 'installée à la main, hors release' : 'version de la release';
+  const gauche = `<section class="carte maj-actuelle"><span class="lib">Version installée</span>
+      <strong class="gros-version">${esc(nomVersion(m.actuelle))}</strong><span class="discret">${installee}</span></section>
+    <section class="carte maj-explication"><h2>Comment ça marche</h2>
+      <p>À chaque push sur <span class="mono">main</span>, GitHub vérifie le code puis publie une release.</p>
+      <p>La tablette la télécharge et contrôle son empreinte, mais n'installe rien sans ton accord.</p>
+      <p>Ta configuration et l'historique sont conservés. Si la nouvelle version ne démarre pas, la tablette revient seule à la précédente.</p></section>`;
+
+  let droite;
+  if (d) {
+    const prete = m.statut === 'prete';
+    droite = `<section class="carte maj-dispo"><div class="maj-entete">
+        <div><span class="lib">Nouvelle version</span><strong class="gros-version info">${esc(nomVersion(d.version))}</strong>
+        <span class="discret">${d.publiee ? `publiée ${ilya(d.publiee)}` : ''}${prete ? ' · téléchargée et vérifiée (SHA-256)' : ' · téléchargement…'}</span></div>
+        <button type="button" class="bouton plein info appui" data-action="maj-demander" data-version="${esc(d.version)}"${prete ? '' : ' disabled'}>${svg(D.maj, 22, 2.2)}<span>Mettre à jour</span></button></div>
+      <div class="notes defile" data-defile="notes">${notesRelease(d.notes)}</div></section>`;
+  } else if (m.statut === 'a_jour') {
+    droite = `<section class="carte maj-vide">${svg(D.ok, 40, 2.4, HEX.up)}<strong>Tu as la dernière version.</strong>
+      <span class="discret">La prochaine vérification se fera automatiquement.</span></section>`;
+  } else {
+    droite = `<section class="carte maj-vide">${svg(D.maj, 40, 2, '#93A1B5')}<strong>${m.depot ? 'Aucune nouvelle version pour le moment.' : 'Mises à jour désactivées.'}</strong></section>`;
+  }
+  return `<div class="ecran">${rail('maj')}<main class="contenu">
+    <header class="entete"><div class="titres"><div class="ligne-titre"><h1>Mise à jour</h1>${etiquette}</div><p class="sous">${sous}</p></div>${bouton}${horloge()}</header>
+    ${m.erreur ? `<div class="alerte-api">${esc(m.erreur)}</div>` : ''}
+    <div class="deux-colonnes" style="grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);">
+      <div class="colonne">${gauche}</div><div class="colonne">${droite}</div>
+    </div>
+  </main></div>`;
+}
+
+function fenetreMaj() {
+  const m = S.etat && S.etat.maj;
+  const enCours = S.majEnvoyee || (m && (m.statut === 'installation' || m.statut === 'redemarrage'));
+  if (enCours) {
+    const v = S.majEnvoyee || (m.disponible && m.disponible.version);
+    return `<div class="installation"><span class="roue"></span><strong>Installation de ${esc(nomVersion(v))}…</strong>
+      <span>L'appli redémarre, l'écran va se recharger tout seul.</span></div>`;
+  }
+  if (!S.confirmerMaj) return '';
+  return `<div class="modale-fond" data-action="maj-annuler"><div class="modale" role="dialog" aria-modal="true" data-action="rien">
+    <h2>Installer ${esc(nomVersion(S.confirmerMaj))} ?</h2>
+    <p>L'appli va redémarrer, ce qui prend une vingtaine de secondes. Ta configuration et l'historique sont conservés.</p>
+    <p>Si la nouvelle version ne démarre pas, la tablette revient automatiquement à ${esc(nomVersion(m.actuelle))}.</p>
+    <div class="actions"><button type="button" class="bouton appui" data-action="maj-annuler">Annuler</button>
+      <button type="button" class="bouton plein info appui" data-action="maj-confirmer">${svg(D.maj, 22, 2.2)}<span>Oui, mettre à jour</span></button></div>
+  </div></div>`;
+}
+
 // ------------------------------------------------------------------ Veille
 function pageVeille() {
   const e = S.etat;
@@ -534,7 +629,7 @@ function pageVeille() {
 function route() {
   const h = location.hash.replace(/^#\/?/, '');
   if (h.startsWith('service/')) return { page: 'service', id: decodeURIComponent(h.slice(8)) };
-  if (h === 'tailscale' || h === 'incidents' || h === 'veille') return { page: h };
+  if (h === 'tailscale' || h === 'incidents' || h === 'veille' || h === 'maj') return { page: h };
   return { page: 'accueil' };
 }
 
@@ -553,8 +648,10 @@ function rendre() {
   else if (r.page === 'tailscale') html = pageTailscale();
   else if (r.page === 'incidents') html = pageIncidents();
   else if (r.page === 'veille') html = pageVeille();
+  else if (r.page === 'maj') html = pageMaj();
   else html = pageAccueil();
-  if (S.erreur) html += '<div class="hors-ligne">Serveur de monitoring injoignable : données figées</div>';
+  html += fenetreMaj();
+  if (S.erreur && !S.majEnvoyee) html += '<div class="hors-ligne">Serveur de monitoring injoignable : données figées</div>';
   if (S.toast) html += `<div class="toast">${esc(S.toast)}</div>`;
   app.innerHTML = html;
   app.querySelectorAll('[data-defile]').forEach((el) => { if (defile[el.dataset.defile]) el.scrollTop = defile[el.dataset.defile]; });
@@ -598,6 +695,12 @@ async function rafraichir() {
     S.etat = await lireJSON('/api/etat');
     S.erreur = false;
     verifierReveil();
+    const m = S.etat.maj, di = m && m.derniere_installation;
+    if (S.majEnvoyee && m && m.statut === 'prete' && m.erreur) S.majEnvoyee = null;   // installation refusee
+    if (!S.toastMajVu && di && di.version === m.actuelle && maintenant() - di.quand < 180) {
+      S.toastMajVu = true;
+      setTimeout(() => afficherToast(`Mise à jour installée : ${nomVersion(m.actuelle)}`), 500);
+    }
   } catch (e) {
     S.erreur = true;
   }
@@ -617,7 +720,30 @@ document.addEventListener('click', async (ev) => {
   ev.preventDefault();
   const action = el.dataset.action;
   try {
+    if (action === 'rien') return;
     if (action === 'filtre') { S.filtre = el.dataset.val; rendre(); return; }
+    if (action === 'maj-demander') { S.confirmerMaj = el.dataset.version; rendre(); return; }
+    if (action === 'maj-annuler') { S.confirmerMaj = null; rendre(); return; }
+    if (action === 'maj-verifier') {
+      await lireJSON('/api/maj/verifier', { method: 'POST' });
+      afficherToast('Vérification lancée');
+      setTimeout(rafraichir, 4000);
+    }
+    if (action === 'maj-confirmer') {
+      const version = S.confirmerMaj;
+      S.confirmerMaj = null;
+      const rep = await fetch('/api/maj/installer', {
+        method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version }),
+      });
+      if (!rep.ok) {
+        const d = await rep.json().catch(() => ({}));
+        afficherToast(d.erreur || 'Installation refusée');
+        return;
+      }
+      S.majEnvoyee = version;
+      rendre();
+    }
     if (action === 'relancer') {
       await lireJSON(`/api/controler/${encodeURIComponent(el.dataset.id)}`, { method: 'POST' });
       afficherToast('Contrôles relancés');
@@ -650,7 +776,8 @@ window.addEventListener('hashchange', async () => {
 setInterval(() => {
   if (!S.etat) return;
   const minutes = S.etat.veille_minutes;
-  if (minutes > 0 && route().page !== 'veille' && Date.now() - S.derniereAction > minutes * 60000) {
+  if (minutes > 0 && route().page !== 'veille' && !S.majEnvoyee && Date.now() - S.derniereAction > minutes * 60000) {
+    S.confirmerMaj = null;
     location.hash = '#/veille';
   }
 }, 10000);

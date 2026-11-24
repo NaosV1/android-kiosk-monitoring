@@ -5,6 +5,11 @@ monitoring/config.toml.*
 monitoring/data.db*
 monitoring/*.log
 __pycache__/
+# mises a jour : archives telechargees, sauvegarde, version installee (ecrite par la release)
+monitoring/.maj/
+monitoring/VERSION
+build/
+dist/
 # appli Kiosque : jeton, cle de signature et APK generes
 *.apk
 *.keystore

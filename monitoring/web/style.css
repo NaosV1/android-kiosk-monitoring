@@ -308,3 +308,37 @@ tr.alerte td { background: #1D1214; }
   position: fixed; top: 0; left: 0; right: 0; padding: 10px; text-align: center; background: var(--down); color: var(--fond);
   font-size: 15px; font-weight: 700; z-index: 10;
 }
+
+/* ---------- mise a jour */
+.pastille.info { background: var(--accent); }
+.etiquette.info { background: #12233A; border-color: #23476E; color: var(--accent); }
+.bouton.plein.info { background: var(--accent); }
+.bouton:disabled { opacity: .45; }
+.carte .lib { font-size: 14px; color: var(--discret); }
+.gros-version { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; font-feature-settings: "tnum" 1; }
+.gros-version.info { color: var(--accent); }
+.maj-explication p { font-size: 15px; line-height: 1.5; color: var(--texte2); }
+.maj-dispo { flex: 1; min-height: 0; border-color: #23476E; }
+.maj-entete { display: flex; align-items: center; gap: 16px; }
+.maj-entete > div { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.maj-entete .discret { font-size: 14px; }
+.notes { flex: 1; min-height: 0; padding-top: 12px; border-top: 1px solid var(--bord); font-size: 15px; line-height: 1.55; color: var(--texte2); }
+.notes ul { margin: 0 0 8px; padding-left: 20px; } .notes li { margin-bottom: 4px; } .notes p { margin-bottom: 8px; }
+.maj-vide { flex: 1; align-items: center; justify-content: center; text-align: center; gap: 12px; }
+.maj-vide strong { font-size: 20px; }
+.modale-fond { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(4, 6, 9, .78); }
+.modale {
+  width: 600px; padding: 28px 30px; border-radius: 20px; background: var(--surface); border: 1px solid var(--bord2);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.modale h2 { font-size: 24px; font-weight: 700; }
+.modale p { font-size: 16px; line-height: 1.5; color: var(--texte2); }
+.modale .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px; }
+.installation {
+  position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; background: rgba(11, 15, 20, .96);
+}
+.installation strong { font-size: 28px; font-weight: 700; }
+.installation span { font-size: 17px; color: var(--discret); }
+.roue { width: 54px; height: 54px; border-radius: 50%; border: 5px solid var(--bord2); border-top-color: var(--accent); animation: tourner 1s linear infinite; }
+@keyframes tourner { to { transform: rotate(360deg); } }

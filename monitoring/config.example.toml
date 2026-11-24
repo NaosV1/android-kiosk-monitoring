@@ -18,6 +18,10 @@ cle_api = ""               # cle API Tailscale (tskey-api-...) pour la liste des
 tailnet = "-"              # "-" = le tailnet de la cle
 nom_tablette = ""          # nom de la tablette dans le tailnet
 
+[mise_a_jour]
+depot = "NaosV1/android-kiosk-monitoring"   # releases GitHub a suivre ("" = desactive)
+verifier_toutes_les_heures = 6             # la release est telechargee, l'installation se fait sur l'ecran
+
 # ---------------------------------------------------------------------------
 # Services
 #

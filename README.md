@@ -32,6 +32,8 @@ Testé sur une Lenovo Tab K10 (Android 12, écran 1920 × 1200).
 - **Écran de veille** après quelques minutes sans toucher l'écran. Il se rallume sur tout nouvel incident.
 - **Verrouillage** : une petite appli Android *device owner* (« Kiosque ») bloque la tablette sur l'écran
   Linux (pas d'accueil Android, pas de notifications). On la pilote en SSH.
+- **Mises à jour** : chaque push sur `main` est vérifié puis publié en release. La tablette télécharge
+  la release et l'installe quand on appuie sur « Mettre à jour » (avec confirmation). Voir [plus bas](#mises-à-jour-cicd).
 
 Côté serveur, aucune dépendance : uniquement la bibliothèque standard de Python 3.11+.
 
@@ -57,6 +59,9 @@ monitoring/            serveur, interface web et exemple de configuration
 tablette/termux/       scripts côté Termux (démarrage, SSH, commande kiosk)
 tablette/debian/       scripts côté Debian (session X, relance de l'appli)
 kiosque/               sources de l'appli Android de verrouillage (compilée sur la tablette)
+ci/verifier.py         vérifications lancées par la CI (et utilisables en local)
+.github/workflows/     CI : vérifications puis release à chaque push sur main
+VERSION                version majeure.mineure des releases (le dernier chiffre est ajouté par la CI)
 ```
 
 ## Installation
@@ -160,6 +165,62 @@ nodes = [
   { nom = "srv1", url = "https://api.exemple.fr/health", ip = "203.0.113.10", json = { status = "ok" } },
   { nom = "srv2", url = "https://api.exemple.fr/health", ip = "203.0.113.20", json = { status = "ok" } },
 ]
+```
+
+## Mises à jour (CI/CD)
+
+```
+push sur main ──► GitHub Actions : vérifications ──► release vX.Y.N ──► la tablette la télécharge
+                                                                          │
+                                         bouton « Mettre à jour » + confirmation ──► installation
+```
+
+**À chaque push sur `main`**, le workflow [`ci.yml`](.github/workflows/ci.yml) vérifie :
+
+- **Python** : le serveur compile, la config d'exemple se charge, et un vrai serveur démarre et répond
+  ([`ci/verifier.py`](ci/verifier.py)) ;
+- **JavaScript** : la syntaxe de l'interface ;
+- **shell** : la syntaxe de tous les scripts ;
+- **Java** : l'appli Kiosque compile contre le SDK Android.
+
+Si tout passe **et** que `monitoring/` ou `VERSION` a changé depuis la dernière release, il publie
+une release `vX.Y.N` :
+
+- `X.Y` vient du fichier `VERSION`. Modifie-le pour changer de version majeure ou mineure.
+- `N` est le numéro du run de la CI.
+- La release contient `monitoring-X.Y.N.tar.gz` et `SHA256SUMS`.
+
+Un push qui ne touche que le README ne crée pas de release.
+
+**Sur la tablette**, le serveur interroge l'API GitHub toutes les 6 h. Le bouton « Vérifier maintenant »
+de la page *Mise à jour* lance la même vérification tout de suite.
+
+Quand une release plus récente existe, la tablette :
+
+1. télécharge l'archive et vérifie son empreinte SHA-256 ;
+2. contrôle son contenu (ni chemin qui sort du dossier, ni lien) ;
+3. affiche une pastille sur « Mise à jour » dans le menu, avec les notes de version.
+
+**Rien n'est installé sans appui sur « Mettre à jour » puis confirmation.** À l'installation :
+
+- `config.toml`, `data.db` et les journaux ne sont pas touchés ;
+- la version en place est sauvegardée dans `monitoring/.maj/precedente/` ;
+- l'appli redémarre, puis affiche « Mise à jour installée ».
+
+Si la nouvelle version ne démarre pas, `lancer.sh` remet automatiquement la précédente et la page
+*Mise à jour* l'indique. Pour revenir à la main à la version précédente :
+
+```sh
+cd /root/monitoring && cp -p .maj/precedente/{serveur.py,lancer.sh,VERSION} . \
+  && rm -rf web && cp -rp .maj/precedente/web web && kiosk-restart
+```
+
+Configuration (section `[mise_a_jour]` de `config.toml`) :
+
+```toml
+[mise_a_jour]
+depot = "NaosV1/android-kiosk-monitoring"   # "" = désactivé
+verifier_toutes_les_heures = 6
 ```
 
 ## Tailscale (facultatif)

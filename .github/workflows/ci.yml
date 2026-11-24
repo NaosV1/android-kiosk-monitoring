@@ -1,0 +1,101 @@
+# A chaque push sur main : verifications, puis release si le code du monitoring a change.
+# La tablette voit la release, la telecharge, et propose "Mettre a jour".
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verifier:
+    name: Vérifications
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Python (compilation, config d'exemple, démarrage du serveur)
+        run: python ci/verifier.py
+
+      - name: JavaScript (syntaxe)
+        run: node --check monitoring/web/app.js
+
+      - name: Scripts shell (syntaxe)
+        run: |
+          for f in monitoring/lancer.sh kiosque/build.sh kiosque/gen-stubs.sh \
+                   tablette/debian/kiosk-app.sh tablette/debian/kiosk-restart tablette/debian/kiosk-session \
+                   tablette/termux/boot/00-linux tablette/termux/debian-ssh tablette/termux/kiosk \
+                   tablette/termux/linux-start tablette/termux/linux-stop tablette/termux/plein-ecran-auto; do
+            bash -n "$f" && echo "ok  $f"
+          done
+
+      - name: Appli Android Kiosque (compilation Java)
+        run: |
+          JAR=$(ls -d "$ANDROID_HOME"/platforms/android-*/android.jar | sort -V | tail -1)
+          echo "android.jar : $JAR"
+          mkdir -p build/classes
+          javac -source 8 -target 8 -Xlint:-options -bootclasspath "$JAR" -d build/classes \
+            $(find kiosque/src -name '*.java')
+          ls build/classes/fr/tablette/kiosque
+
+  release:
+    name: Release
+    needs: verifier
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Faut-il publier ?
+        id: publier
+        run: |
+          PREC=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          echo "precedente=$PREC" >> "$GITHUB_OUTPUT"
+          if [ -n "$PREC" ] && git diff --quiet "$PREC" HEAD -- monitoring VERSION; then
+            echo "Rien n'a change dans monitoring/ depuis $PREC : pas de release."
+            echo "oui=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "oui=oui" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Archive
+        id: archive
+        if: steps.publier.outputs.oui == 'oui'
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d ' \r\n' < VERSION).${GITHUB_RUN_NUMBER}"
+          NOM="monitoring-$VERSION"
+          mkdir -p "dist/$NOM"
+          cp monitoring/serveur.py monitoring/lancer.sh monitoring/config.example.toml "dist/$NOM/"
+          cp -r monitoring/web "dist/$NOM/web"
+          echo "$VERSION" > "dist/$NOM/VERSION"
+          tar -C dist --owner=0 --group=0 --numeric-owner -czf "dist/$NOM.tar.gz" "$NOM"
+          (cd dist && sha256sum "$NOM.tar.gz" > SHA256SUMS && cat SHA256SUMS)
+          PREC="${{ steps.publier.outputs.precedente }}"
+          { echo "Modifications :"; echo
+            git log --no-merges --format='- %s (%h)' ${PREC:+$PREC..}HEAD | head -50; } > notes.md
+          cat notes.md
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "nom=$NOM" >> "$GITHUB_OUTPUT"
+
+      - name: Publication de la release
+        if: steps.publier.outputs.oui == 'oui'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.archive.outputs.version }}" \
+            "dist/${{ steps.archive.outputs.nom }}.tar.gz" dist/SHA256SUMS \
+            --title "v${{ steps.archive.outputs.version }}" --notes-file notes.md --target "$GITHUB_SHA"
