@@ -542,7 +542,7 @@ function pageMaj() {
   };
   const etiquette = etiquettes[m.statut] || '';
   const sous = m.depot
-    ? `Dépôt <span class="mono">${esc(m.depot)}</span> · ${m.en_cours ? 'vérification en cours…' : `vérifiée ${ilya(m.verifie)}`} · toutes les ${m.heures} h`
+    ? `Dépôt <span class="mono">${esc(m.depot)}</span> · ${m.en_cours ? 'vérification en cours…' : m.verifie ? `vérifiée ${ilya(m.verifie)}` : 'pas encore vérifiée'} · toutes les ${m.heures} h`
     : 'Ajoute une section [mise_a_jour] avec le dépôt GitHub dans config.toml';
   const bouton = m.depot
     ? `<button type="button" class="bouton appui" data-action="maj-verifier"${m.en_cours ? ' disabled' : ''}>${svg(D.relancer, 22, 2)}<span>${m.en_cours ? 'Vérification…' : 'Vérifier maintenant'}</span></button>` : '';
