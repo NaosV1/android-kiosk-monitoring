@@ -287,23 +287,6 @@ pub fn bouton_neutre<'a>(libelle: &'a str, message: Message) -> Vue<'a> {
         .into()
 }
 
-/// Lien d'action dans un bandeau ou une carte teintee : texte et chevron dans la teinte.
-pub fn lien<'a>(libelle: &'a str, couleur: Color, message: Message) -> Vue<'a> {
-    button(au_centre(
-        row![
-            t(libelle, 15).font(DEMI_GRAS),
-            icone(Icone::Droite, 18.0, 2.2, couleur)
-        ]
-        .spacing(4)
-        .align_y(Alignment::Center),
-    ))
-    .height(CIBLE)
-    .padding([0, 12])
-    .style(theme::touchable(None, 10.0, couleur))
-    .on_press(message)
-    .into()
-}
-
 pub fn bouton_retour<'a>() -> Vue<'a> {
     button(container(icone(Icone::Gauche, 22.0, 2.2, theme::TEXTE)).center(Length::Fill))
         .width(CIBLE)
@@ -393,14 +376,10 @@ impl Valeur {
     }
 }
 
-pub fn tuile<'a>(
-    libelle: &'a str,
-    valeur: Valeur,
-    legende: String,
-    message: Option<Message>,
-) -> Vue<'a> {
+/// Nombre en gras de `taille` pixels, son unite plus petite et grise, alignes sur le bas.
+pub fn valeur_chiffree<'a>(valeur: Valeur, taille: f32) -> Vue<'a> {
     let mut chiffre = row![
-        t(valeur.nombre, 26)
+        t(valeur.nombre, taille)
             .font(GRAS)
             .color(valeur.couleur)
             .wrapping(Wrapping::None)
@@ -409,13 +388,26 @@ pub fn tuile<'a>(
     .align_y(Alignment::End);
     if let Some(unite) = valeur.unite {
         chiffre = chiffre.push(
-            container(t(unite, 17).font(DEMI_GRAS).color(theme::SECONDAIRE))
-                .padding(Padding::ZERO.bottom(3)),
+            container(
+                t(unite, taille * 0.65)
+                    .font(DEMI_GRAS)
+                    .color(theme::SECONDAIRE),
+            )
+            .padding(Padding::ZERO.bottom(taille * 0.12)),
         );
     }
+    container(chiffre).clip(true).into()
+}
+
+pub fn tuile<'a>(
+    libelle: &'a str,
+    valeur: Valeur,
+    legende: String,
+    message: Option<Message>,
+) -> Vue<'a> {
     let contenu = column![
         t(libelle, 13).font(MOYEN).color(theme::SECONDAIRE),
-        container(chiffre).clip(true),
+        valeur_chiffree(valeur, 26.0),
         ligne_secondaire(legende, 13.0),
     ]
     .spacing(4);
@@ -517,7 +509,7 @@ pub fn hors_ligne<'a>(recu: i64, periode: u64) -> Vue<'a> {
         .font(DEMI_GRAS)
         .color(theme::SURFACE),
     )
-    .padding(9)
+    .padding([6, 9])
     .center_x(Length::Fill)
     .style(|_: &Theme| theme::boite(theme::ton(Niveau::Down).texte, 0.0))
     .into()

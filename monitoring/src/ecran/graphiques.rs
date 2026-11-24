@@ -19,7 +19,7 @@ pub fn sparkline<'a, M: 'a>(valeurs: &[Option<f64>], etat: Niveau) -> Element<'a
         etat,
     })
     .width(Length::Fill)
-    .height(22)
+    .height(18)
     .into()
 }
 

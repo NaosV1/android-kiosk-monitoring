@@ -1,5 +1,6 @@
-//! Accueil : le verdict, quatre chiffres, puis une carte par service, groupees par tag
-//! (les groupes qui contiennent un probleme en tete).
+//! Accueil : le verdict et trois chiffres sur un bandeau, puis une carte par service, groupees
+//! par tag (les groupes qui contiennent un probleme en tete). Douze services sur trois tags
+//! tiennent sur l'ecran sans defiler ; au-dela, la grille defile.
 
 use iced::widget::text::Wrapping;
 use iced::widget::{Space, button, column, container, row, span};
@@ -9,18 +10,24 @@ use crate::api::{Etat, Niveau, Service};
 
 use super::Contexte;
 use crate::ecran::Message;
-use crate::ecran::commun::{
-    self, Valeur, Vue, defilant, ecran, entete, horloge, lien, point, titres, tuile,
-};
+use crate::ecran::commun::{self, Valeur, Vue, defilant, ecran, entete, horloge, point, titres};
 use crate::ecran::format::{self, abreger, duree, il_y_a, ms, pct, pluriel};
 use crate::ecran::graphiques::sparkline;
 use crate::ecran::icones::{Icone, icone, icone_etat};
 use crate::ecran::logique::{self, Page, compte_nodes, groupes, problemes};
 use crate::ecran::theme::{self, DEMI_GRAS, GRAS, t, texte_riche};
 
-const COLONNES: usize = 3;
+const COLONNES: usize = 4;
 /// Caracteres d'un nom de service avant « … » (la latence tient a droite).
-const NOM_MAX: usize = 20;
+const NOM_MAX: usize = 16;
+/// Ligne d'adresse d'une carte (maquette 1280 x 800) : largeur utile et chasse moyenne de ses
+/// deux polices, pour abreger l'adresse avant qu'elle ne bute sur le nombre de nodes.
+const LARGEUR_LIGNE_ADRESSE: f32 = 209.0;
+const CHASSE_MONO_12: f32 = 7.2;
+const CHASSE_INTER_12_5: f32 = 6.3;
+/// Hauteur du bandeau : un verdict sur deux lignes y tient.
+const HAUTEUR_BANDEAU: f32 = 76.0;
+const LARGEUR_CHIFFRE: f32 = 164.0;
 
 pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
     let e = c.etat;
@@ -65,7 +72,7 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
         let gs = groupes(&e.services);
         let avec_titres = gs.len() > 1 || gs.first().is_some_and(|g| !g.tag.is_empty());
         let blocs = gs.into_iter().map(|g| {
-            let mut bloc = column![].spacing(10);
+            let mut bloc = column![].spacing(8);
             if avec_titres {
                 bloc = bloc.push(entete_groupe(
                     if g.tag.is_empty() { "Autres" } else { g.tag },
@@ -75,19 +82,22 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
             }
             bloc.push(grille(&g.services, instant, perime)).into()
         });
-        defilant(
-            column(blocs)
-                .spacing(22)
-                .padding(iced::Padding::ZERO.bottom(8)),
-        )
-        .height(Length::Fill)
-        .into()
+        defilant(column(blocs).spacing(12))
+            .height(Length::Fill)
+            .into()
     };
     ecran(
         &Page::Accueil,
         e,
         c.injoignable_depuis.is_some(),
-        column![tete, verdict(c), chiffres(c), contenu].spacing(18),
+        column![
+            tete,
+            row![verdict(c), chiffres(c)]
+                .spacing(12)
+                .height(HAUTEUR_BANDEAU),
+            contenu
+        ]
+        .spacing(12),
     )
 }
 
@@ -97,10 +107,10 @@ fn verdict<'a>(c: &Contexte<'a>) -> Vue<'a> {
     if let Some(recu) = c.injoignable_depuis {
         return cadre_verdict(
             Niveau::Inconnu,
-            icone_etat(Niveau::Inconnu, 22.0),
+            icone_etat(Niveau::Inconnu, 20.0),
             "État inconnu : le serveur ne répond plus".into(),
             format!(
-                "Dernier état reçu à {} ; les services affichés ci-dessous datent de ce moment.",
+                "Dernier état reçu à {} ; les services datent de ce moment.",
                 format::heure(&format::local(recu))
             ),
             None,
@@ -109,7 +119,7 @@ fn verdict<'a>(c: &Contexte<'a>) -> Vue<'a> {
     if e.services.is_empty() {
         return cadre_verdict(
             Niveau::Inconnu,
-            icone(Icone::Info, 22.0, 2.0, theme::ACCENT),
+            icone(Icone::Info, 20.0, 2.0, theme::ACCENT),
             "Aucun service configuré".into(),
             "Ajoute tes services dans /root/monitoring/config.toml, puis lance kiosk-restart."
                 .into(),
@@ -120,7 +130,7 @@ fn verdict<'a>(c: &Contexte<'a>) -> Vue<'a> {
     match pbs.as_slice() {
         [] if e.services.iter().all(|s| s.etat == Niveau::Inconnu) => cadre_verdict(
             Niveau::Inconnu,
-            icone_etat(Niveau::Inconnu, 22.0),
+            icone_etat(Niveau::Inconnu, 20.0),
             "Premiers contrôles en cours…".into(),
             "Les résultats arrivent dans quelques secondes.".into(),
             None,
@@ -135,7 +145,7 @@ fn verdict<'a>(c: &Contexte<'a>) -> Vue<'a> {
                 .max();
             cadre_verdict(
                 Niveau::Up,
-                icone_etat(Niveau::Up, 22.0),
+                icone_etat(Niveau::Up, 20.0),
                 "Tout est opérationnel".into(),
                 format!(
                     "{} et {} répondent normalement, dernier contrôle {}",
@@ -148,7 +158,7 @@ fn verdict<'a>(c: &Contexte<'a>) -> Vue<'a> {
         }
         [p] => cadre_verdict(
             p.niveau,
-            icone_etat(p.niveau, 22.0),
+            icone_etat(p.niveau, 20.0),
             p.titre.clone(),
             format!(
                 "{}, depuis {}",
@@ -161,7 +171,7 @@ fn verdict<'a>(c: &Contexte<'a>) -> Vue<'a> {
             let niveau = logique::pire(plusieurs.iter().map(|p| p.niveau));
             cadre_verdict(
                 niveau,
-                icone_etat(niveau, 22.0),
+                icone_etat(niveau, 20.0),
                 format!("{} problèmes en cours", plusieurs.len()),
                 plusieurs
                     .iter()
@@ -192,54 +202,48 @@ fn cadre_verdict<'a>(
         _ => (ton.fond, theme::SURFACE, ton.texte, ton.texte_fond),
     };
     let rond = container(dessin)
-        .center(44)
-        .style(move |_: &Theme| theme::boite(fond_rond, 22.0));
+        .center(40)
+        .style(move |_: &Theme| theme::boite(fond_rond, 20.0));
+    // le detail passe a la ligne : le bandeau en garde deux
     let textes = column![
-        t(titre, 22)
+        t(titre, 18)
             .font(GRAS)
             .color(couleur_titre)
             .wrapping(Wrapping::None),
-        commun::sous_titre(
-            t(detail, 15)
-                .color(couleur_detail)
-                .wrapping(Wrapping::None)
-                .into()
-        ),
+        t(detail, 14).color(couleur_detail),
     ]
     .spacing(2);
     let mut ligne = row![rond, container(textes).width(Length::Fill).clip(true)]
-        .spacing(16)
+        .spacing(14)
         .align_y(Alignment::Center);
-    if let Some(page) = cible {
-        ligne = ligne.push(lien("Voir le détail", couleur_titre, Message::Aller(page)));
-    }
-    container(ligne)
-        .padding([14, 18])
+    // un probleme : tout le verdict ouvre son detail
+    let Some(page) = cible else {
+        return container(ligne)
+            .center_y(Length::Fill)
+            .width(Length::Fill)
+            .padding([0, 18])
+            .style(move |_: &Theme| theme::boite(fond, 16.0))
+            .into();
+    };
+    ligne = ligne.push(icone(Icone::Droite, 18.0, 2.2, couleur_titre));
+    button(container(ligne).center_y(Length::Fill))
         .width(Length::Fill)
-        .style(move |_: &Theme| theme::boite(fond, 16.0))
+        .height(Length::Fill)
+        .padding([0, 18])
+        .style(theme::touchable(Some(fond), 16.0, couleur_titre))
+        .on_press(Message::Aller(page))
         .into()
 }
 
-/// Disponibilite, temps de reponse, incidents en cours, Tailscale.
+/// Disponibilite et temps de reponse moyens, Tailscale de la tablette.
 fn chiffres<'a>(c: &Contexte<'a>) -> Vue<'a> {
     let e = c.etat;
-    let perime = c.injoignable_depuis.is_some();
     let dispos: Vec<f64> = e.services.iter().filter_map(|s| s.dispo30).collect();
     let dispo = if dispos.is_empty() {
-        tuile(
-            "Disponibilité sur 30 jours",
-            Valeur::texte("—"),
-            "pas encore assez d'historique".into(),
-            None,
-        )
+        Valeur::texte("—")
     } else {
         let moyenne = dispos.iter().sum::<f64>() / dispos.len() as f64;
-        tuile(
-            "Disponibilité sur 30 jours",
-            Valeur::avec_unite(pct(Some(moyenne)).trim_end_matches(" %").to_string(), "%"),
-            format!("moyenne de {}", pluriel(dispos.len(), "service")),
-            None,
-        )
+        Valeur::avec_unite(pct(Some(moyenne)).trim_end_matches(" %").to_string(), "%")
     };
     let latences: Vec<f64> = e
         .services
@@ -247,55 +251,54 @@ fn chiffres<'a>(c: &Contexte<'a>) -> Vue<'a> {
         .filter(|s| matches!(s.etat, Niveau::Up | Niveau::Warn))
         .filter_map(|s| s.ms)
         .collect();
-    let latence = tuile(
-        "Temps de réponse moyen",
-        if latences.is_empty() {
-            Valeur::texte("—")
-        } else {
-            let moyenne = latences.iter().sum::<f64>() / latences.len() as f64;
-            Valeur::avec_unite(ms(Some(moyenne)).trim_end_matches(" ms").to_string(), "ms")
-        },
-        format!("lent au-delà de {}", ms(Some(e.seuil_lent as f64))),
-        None,
-    );
-    let ouverts = &e.incidents_ouverts;
-    let incidents = if ouverts.is_empty() {
-        tuile(
-            "Incidents en cours",
-            Valeur::texte("0"),
-            "rien à signaler".into(),
-            Some(Message::Aller(Page::Incidents)),
-        )
+    let latence = if latences.is_empty() {
+        Valeur::texte("—")
     } else {
-        let niveau = logique::pire(ouverts.iter().map(|i| i.niveau));
-        let non_vus = ouverts.iter().filter(|i| i.acquitte == 0).count();
-        tuile(
-            "Incidents en cours",
-            Valeur::texte(ouverts.len().to_string()).couleur(if perime {
-                theme::TEXTE
-            } else {
-                theme::ton(niveau).texte
-            }),
-            if non_vus > 0 {
-                format!("{non_vus} à acquitter")
-            } else {
-                "tous acquittés".into()
-            },
-            Some(Message::Aller(Page::Incidents)),
-        )
+        let moyenne = latences.iter().sum::<f64>() / latences.len() as f64;
+        Valeur::avec_unite(ms(Some(moyenne)).trim_end_matches(" ms").to_string(), "ms")
     };
     row![
-        dispo,
-        latence,
-        incidents,
-        tailscale(e, c.injoignable_depuis.unwrap_or(c.maintenant), perime)
+        chiffre("Disponibilité 30 j", dispo, None),
+        chiffre("Réponse moyenne", latence, None),
+        tailscale(e, c.injoignable_depuis.is_some()),
     ]
-    .spacing(14)
+    .spacing(12)
+    .height(Length::Fill)
     .into()
 }
 
-/// `perime` : etat d'avant la perte du serveur, montre sans teinte et date de `maintenant`.
-fn tailscale<'a>(e: &'a Etat, maintenant: i64, perime: bool) -> Vue<'a> {
+/// Chiffre du bandeau : un libelle et une valeur, sans legende.
+fn chiffre<'a>(libelle: &'a str, valeur: Valeur, message: Option<Message>) -> Vue<'a> {
+    let contenu = container(
+        column![
+            t(libelle, 12.5)
+                .font(theme::MOYEN)
+                .color(theme::SECONDAIRE)
+                .wrapping(Wrapping::None),
+            commun::valeur_chiffree(valeur, 22.0),
+        ]
+        .spacing(3),
+    )
+    .center_y(Length::Fill);
+    match message {
+        Some(m) => button(contenu)
+            .width(LARGEUR_CHIFFRE)
+            .height(Length::Fill)
+            .padding([0, 16])
+            .style(theme::touchable(Some(theme::SURFACE), 16.0, theme::TEXTE))
+            .on_press(m)
+            .into(),
+        None => container(contenu)
+            .width(LARGEUR_CHIFFRE)
+            .height(Length::Fill)
+            .padding([0, 16])
+            .style(theme::carte)
+            .into(),
+    }
+}
+
+/// `perime` : etat d'avant la perte du serveur, montre sans teinte.
+fn tailscale<'a>(e: &'a Etat, perime: bool) -> Vue<'a> {
     let ts = &e.tailscale;
     let teinte = |niveau: Niveau| {
         if perime {
@@ -305,27 +308,13 @@ fn tailscale<'a>(e: &'a Etat, maintenant: i64, perime: bool) -> Vue<'a> {
         }
     };
     // la couleur n'est donnee qu'a un probleme ; « connecte » reste neutre
-    let (valeur, legende) = match (&ts.tablette.ip, ts.exit_node.actif, ts.actif) {
-        (Some(ip), true, _) => (
-            Valeur::texte("Exit node actif").couleur(teinte(Niveau::Warn)),
-            format!("{ip}, Internet passe par le tunnel"),
-        ),
-        (Some(ip), false, _) => (Valeur::texte("Connecté"), ip.clone()),
-        (None, _, true) => (
-            Valeur::texte("Déconnecté").couleur(teinte(Niveau::Down)),
-            format!("depuis {}", duree((maintenant - ts.tablette.depuis) as f64)),
-        ),
-        (None, _, false) => (
-            Valeur::texte("Hors tailnet"),
-            "surveillance désactivée".into(),
-        ),
+    let valeur = match (&ts.tablette.ip, ts.exit_node.actif, ts.actif) {
+        (Some(_), true, _) => Valeur::texte("Exit node").couleur(teinte(Niveau::Warn)),
+        (Some(_), false, _) => Valeur::texte("Connecté"),
+        (None, _, true) => Valeur::texte("Déconnecté").couleur(teinte(Niveau::Down)),
+        (None, _, false) => Valeur::texte("Hors tailnet"),
     };
-    tuile(
-        "Tailscale",
-        valeur,
-        legende,
-        Some(Message::Aller(Page::Tailscale)),
-    )
+    chiffre("Tailscale", valeur, Some(Message::Aller(Page::Tailscale)))
 }
 
 fn entete_groupe<'a>(nom: &str, services: &[&Service], perime: bool) -> Vue<'a> {
@@ -379,9 +368,9 @@ fn grille<'a>(services: &[&Service], maintenant: i64, perime: bool) -> Vue<'a> {
         while cases.len() < COLONNES {
             cases.push(Space::new().width(Length::Fill).into());
         }
-        row(cases).spacing(12).into()
+        row(cases).spacing(10).into()
     });
-    column(lignes).spacing(12).into()
+    column(lignes).spacing(10).into()
 }
 
 /// `perime` : etat d'avant la perte du serveur, montre sans teinte (le texte reste lisible).
@@ -415,40 +404,50 @@ fn carte_service<'a>(s: &Service, maintenant: i64, perime: bool) -> Vue<'a> {
         ),
     };
     let haut = row![
-        point(teinte, 10.0),
+        point(teinte, 9.0),
         container(
-            t(abreger(&s.nom, NOM_MAX), 16)
+            t(abreger(&s.nom, NOM_MAX), 15)
                 .font(DEMI_GRAS)
                 .color(theme::TEXTE)
                 .wrapping(Wrapping::None)
         )
         .clip(true)
         .width(Length::Fill),
-        t(latence, 15)
+        t(latence, 14)
             .font(DEMI_GRAS)
             .color(couleur_latence)
             .wrapping(Wrapping::None),
     ]
-    .spacing(12)
+    .spacing(9)
     .align_y(Alignment::Center);
-    let adresse = container(commun::mono(abreger(&s.adresse, 36), 12.5, secondaire))
+    let nodes = compte_nodes(s);
+    let adresse_max = ((LARGEUR_LIGNE_ADRESSE - CHASSE_INTER_12_5 * nodes.chars().count() as f32)
+        / CHASSE_MONO_12) as usize;
+    let milieu = row![
+        container(commun::mono(
+            abreger(&s.adresse, adresse_max),
+            12.0,
+            secondaire
+        ))
         .clip(true)
-        .width(Length::Fill);
+        .width(Length::Fill),
+        t(nodes, 12.5).color(secondaire).wrapping(Wrapping::None),
+    ]
+    .spacing(8)
+    .align_y(Alignment::Center);
     let bas = row![
-        t(compte_nodes(s), 13)
-            .color(secondaire)
-            .wrapping(Wrapping::None),
-        Space::new().width(Length::Fill),
-        t(note, 13)
+        sparkline(&s.spark, teinte),
+        t(note, 12.5)
             .font(theme::MOYEN)
             .color(couleur_note)
             .wrapping(Wrapping::None),
     ]
+    .spacing(10)
     .align_y(Alignment::Center);
-    let contenu = column![haut, adresse, sparkline(&s.spark, teinte), bas].spacing(8);
+    let contenu = column![haut, milieu, bas].spacing(5);
     button(contenu)
         .width(Length::Fill)
-        .padding([14, 16])
+        .padding([10, 13])
         .style(theme::touchable(Some(fond), 14.0, theme::TEXTE))
         .on_press(Message::Aller(Page::Service(s.id.clone())))
         .into()

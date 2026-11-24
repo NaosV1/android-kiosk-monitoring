@@ -62,6 +62,10 @@ typography:
     fontFamily: "Inter, sans-serif"
     fontSize: "22px"
     fontWeight: 700
+  titre-verdict:
+    fontFamily: "Inter, sans-serif"
+    fontSize: "18px"
+    fontWeight: 700
   title:
     fontFamily: "Inter, sans-serif"
     fontSize: "17px"
@@ -69,6 +73,10 @@ typography:
   nom:
     fontFamily: "Inter, sans-serif"
     fontSize: "16px"
+    fontWeight: 600
+  nom-carte:
+    fontFamily: "Inter, sans-serif"
+    fontSize: "15px"
     fontWeight: 600
   body:
     fontFamily: "Inter, sans-serif"
@@ -136,22 +144,30 @@ components:
     typography: "{typography.chiffre}"
     rounded: "{rounded.carte}"
     padding: "14px 18px"
+  chiffre-bandeau:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.texte}"
+    typography: "{typography.verdict}"
+    rounded: "{rounded.carte}"
+    padding: "0 16px"
+    width: "164px"
+    height: "76px"
   carte-service:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.texte}"
-    typography: "{typography.nom}"
+    typography: "{typography.nom-carte}"
     rounded: "{rounded.dense}"
-    padding: "14px 16px"
+    padding: "10px 13px"
   carte-service-warn:
     backgroundColor: "{colors.warn-fond}"
     textColor: "{colors.warn-texte-fond}"
     rounded: "{rounded.dense}"
-    padding: "14px 16px"
+    padding: "10px 13px"
   carte-service-down:
     backgroundColor: "{colors.down-fond}"
     textColor: "{colors.down-texte-fond}"
     rounded: "{rounded.dense}"
-    padding: "14px 16px"
+    padding: "10px 13px"
   verdict-up:
     backgroundColor: "{colors.up-fond}"
     textColor: "{colors.up-texte}"
@@ -203,12 +219,6 @@ components:
     typography: "{typography.bouton}"
     rounded: "{rounded.bouton}"
     padding: "0 16px"
-    height: "44px"
-  lien-down:
-    textColor: "{colors.down-texte}"
-    typography: "{typography.bouton}"
-    rounded: "{rounded.controle}"
-    padding: "0 12px"
     height: "44px"
   bouton-retour:
     backgroundColor: "{colors.surface}"
@@ -338,7 +348,7 @@ components:
 
 **Creative North Star: « La vigie de bureau »**
 
-Une tablette posée à côté de l'écran de travail, toujours allumée, lue de près et touchée souvent. Elle se tait quand tout va bien et parle net quand quelque chose casse : le verdict occupe une carte pleine largeur en tête de l'accueil, teintée de l'état, et tout le reste (chiffres, services, courbes) se lit ensuite. Le registre est celui d'une app système de tablette, avec Apple Maison / Santé pour étalon : fond gris groupé clair, cartes blanches aux grands rayons sans bordure ni ombre, filets gris fins, Inter en casse de phrase, gros chiffres gras.
+Une tablette posée à côté de l'écran de travail, toujours allumée, lue de près et touchée souvent. Elle se tait quand tout va bien et parle net quand quelque chose casse : le verdict ouvre l'accueil, teinté de l'état, et tout le reste (chiffres, services, courbes) se lit ensuite, sur un seul écran. Le registre est celui d'une app système de tablette, avec Apple Maison / Santé pour étalon : fond gris groupé clair, cartes blanches aux grands rayons sans bordure ni ombre, filets gris fins, Inter en casse de phrase, gros chiffres gras.
 
 La couleur est rare et toujours signifiante. Le bleu est la seule voix d'action ; le vert, l'ambre et le rouge ne disent qu'un état, et chaque état a aussi sa forme, pour ne jamais dépendre de la couleur seule. Quand le serveur ne répond plus, l'affichage figé perd ses teintes : seul un bandeau rouge dit que ce qu'on voit est périmé. La veille bascule dans le noir d'une horloge de chevet.
 
@@ -347,7 +357,7 @@ La matière est contrainte par la machine : rendu logiciel tiny-skia, sans GPU. 
 Toutes les mesures de ce document sont en pixels logiques d'une maquette 1280 × 800, agrandie ×1,5 sur l'écran 1920 × 1200 de la tablette : une cible de 44 px logiques fait 66 px physiques.
 
 **Key Characteristics:**
-- Le verdict d'abord : une carte pleine largeur, teintée de l'état, sous le titre de l'accueil.
+- Le verdict d'abord : en tête de l'accueil, teinté de l'état, sur le bandeau qu'il partage avec trois chiffres.
 - Une seule élévation : la carte blanche (`surface`) sur le gris groupé (`fond`), sans bordure ni ombre.
 - Une seule couleur d'action : le bleu `accent`.
 - Trois tons d'état (up, warn, down), chacun en quatre rôles : plein, texte, fond, texte sur fond.
@@ -386,7 +396,7 @@ Chaque état a un ton (`theme::ton`) en quatre rôles : `plein` pour les points,
 La palette `theme::nuit` ne sert qu'à l'écran de veille : **Noir chevet** (`nuit-fond`, #000000) ; **Blanc lune** (`nuit-texte`, #F2F2F7) pour l'heure ; **Gris nuit** (`nuit-secondaire`, #98989F) pour la date, le détail et les noms des services sains ; **Gris discret** (`nuit-discret`, #8E8E93) pour l'invite « Touche l'écran… » ; et les tons d'état éclaircis pour le noir : `nuit-up` (#30D158), `nuit-warn` (#FF9F0A), `nuit-down` (#FF453A).
 
 ### Named Rules
-**La règle de la voix bleue.** Le bleu `accent` est la seule couleur d'action. Seule exception, voulue : sur une surface teintée d'un état (carte-verdict, carte d'incident), le lien ou le bouton d'action prend le texte de ce ton (« Voir le détail », « Acquitter »), pour ne pas poser du bleu sur du rouge.
+**La règle de la voix bleue.** Le bleu `accent` est la seule couleur d'action. Seule exception, voulue : sur une surface teintée d'un état (carte-verdict, carte d'incident), le chevron ou le bouton d'action prend le texte de ce ton (« Voir », « Acquitter »), pour ne pas poser du bleu sur du rouge.
 
 **La règle des états réservés.** Le vert, l'ambre et le rouge ne disent qu'un état, jamais un décor ni une catégorie. Un état s'affiche en point plein (`*-plein`), en mot ou chiffre teinté sur blanc (`*-texte`), ou en surface teintée (`*-fond`) dont le texte secondaire prend `*-texte-fond`.
 
@@ -408,7 +418,8 @@ La palette `theme::nuit` ne sert qu'à l'écran de veille : **Noir chevet** (`nu
 - **Horloge** (`horloge`, demi-grasse 600, 30 px, interligne 1) : l'heure en haut à droite de chaque page, la date en 13 px `secondaire` dessous.
 - **Headline** (`headline`, grasse 700, 28 px) : titre de page, sur une ligne.
 - **Chiffre** (`chiffre`, grasse 700, 26 px) : la valeur d'une tuile ; l'unité suit en 17 px demi-gras `secondaire`.
-- **Verdict** (`verdict`, grasse 700, 22 px) : titre de la carte-verdict, titre de la fenêtre de confirmation, pourcentage 90 jours.
+- **Verdict** (`verdict`, grasse 700, 22 px) : valeur d'un chiffre du bandeau (unité en 14 px), titre de la fenêtre de confirmation, pourcentage 90 jours.
+- **Titre du verdict** (`titre-verdict`, grasse 700, 18 px) : titre de la carte-verdict, le détail dessous en 14 px.
 - **Title** (`title`, demi-grasse 600, 17 px) : titres de section et de carte (« Temps de réponse sur 24 h », nom d'un groupe de tags) ; la mesure d'une node prend la même taille, en gras.
 - **Nom** (`nom`, demi-grasse 600, 16 px) : nom d'un service ou d'une node.
 - **Body** (`body`, normale 400, 15 px) : texte courant, messages, paragraphes de la fenêtre de confirmation.
@@ -435,7 +446,7 @@ Un canevas fixe : la maquette 1280 × 800 est mise à l'échelle de la fenêtre 
 
 - **Squelette** : barre latérale blanche de 220 px à gauche (marges 22 et 14 px, séparée du contenu par un filet de 1 px) ; contenu à droite, à 24 px du haut et du bas et 28 px des côtés.
 - **En-tête de page** : titre 28 px (suivi de sa capsule d'état éventuelle) et sa ligne de détail 14 px ; actions éventuelles ; horloge de 170 px calée à droite ; 16 px entre ces éléments.
-- **Accueil** : une pile espacée de 18 px : en-tête, carte-verdict pleine largeur, rangée de quatre tuiles égales (écart 14 px), puis les services groupés par tag, les groupes à problème en tête, 22 px entre groupes, en grille de 3 colonnes (écart 12 px) ; une rangée incomplète garde ses cases vides pour ne pas étirer les cartes.
+- **Accueil** : tout tient sur un écran, douze services sur trois tags compris. Une pile espacée de 12 px : en-tête ; bandeau de 76 px (carte-verdict à gauche, trois chiffres de 164 px à droite, écart 12 px) ; puis les services groupés par tag, les groupes à problème en tête, 12 px entre groupes, en grille de 4 colonnes (écart 10 px) ; une rangée incomplète garde ses cases vides pour ne pas étirer les cartes. Au-delà, la grille défile.
 - **Détail d'un service** : deux colonnes défilantes en proportion 5:7, écart 20 px : les nodes à gauche ; la courbe 24 h, les 90 jours et les événements à droite, cartes espacées de 14 px.
 - **Rythme** : un pas de 2 px, de 2 à 22 px ; titre de section vers contenu 10 px, éléments d'une carte 8 px, libellé, chiffre et légende d'une tuile 4 px.
 - **Défilement** : au doigt ; un curseur de 4 px en `tertiaire`, sans rail, posé sur le contenu pour que la largeur utile ne change pas.
@@ -463,7 +474,7 @@ Aucune ombre : le système n'a pas de `box-shadow`.
 Des rectangles aux grands rayons, des capsules et des ronds ; aucune bordure, sauf l'anneau de l'état hors ligne.
 
 - **Rayons** : 16 px pour les cartes, tuiles, verdict et cartes d'incident (`carte`) ; 14 px pour les cartes plus denses : carte de service, alerte, note d'information (`dense`) ; 12 px pour les boutons et les liens de la barre latérale (`bouton`) ; 10 px pour les segments, les liens nus et les tuiles d'icône (`controle`) ; 8 px pour les puces (`puce`) ; 20 px pour la fenêtre (`fenetre`) ; 2 px pour les barres des 90 jours et les traits de série (`barre`).
-- **Capsules et ronds** : rayon égal à la moitié de la hauteur (capsule d'état 30 px, compteur, toast, bouton retour 44 px, rond du verdict 44 px, rond d'incident 40 px).
+- **Capsules et ronds** : rayon égal à la moitié de la hauteur (capsule d'état 30 px, compteur, toast, bouton retour 44 px, rond du verdict 40 px, rond d'incident 40 px).
 - **Rayons concentriques** : le rail segmenté (13 px) entoure des segments à 10 px avec une marge de 3 px ; les lignes d'une liste groupée n'arrondissent que leurs coins au bord de la carte, à 16 px (`ligne_de_liste`).
 - **Icônes** : tracées au trait dans une grille 24 × 24 (`icones.rs`), bouts et jointures arrondis, trait de 1,8 à 2,4, affichées de 18 à 22 px ; ni icône pleine, ni caractère utilisé comme icône.
 - **Courbes** : traits de 2 px à bouts ronds ; un trou de mesure coupe la ligne ; le seuil « lent » est en tirets de 6 et 5 px ; une node hors ligne est marquée d'une croix dans un cercle rouge sur sa dernière mesure.
@@ -480,7 +491,6 @@ Francs et calmes : 44 px de haut, rayon 12 px, libellé demi-gras 15 px, icône 
 - **Secondaire** (`bouton`) : fond `accent-fond`, texte et icône `accent`, marges 16 px (« Relancer les contrôles », « Vérifier maintenant »).
 - **Neutre** (`bouton-neutre`) : fond `creux`, texte à l'encre ; pour renoncer (« Annuler »).
 - **Bouton de carte** (`bouton-carte`) : fond blanc sur une carte teintée ; libellé à l'encre (« Voir ») ou dans le ton de la carte (« Acquitter »).
-- **Lien** (`lien-down` et ses pareils) : sans fond, texte et chevron dans le ton de la surface teintée qui le porte (« Voir le détail »), rayon 10 px, marges 12 px.
 - **Retour** (`bouton-retour`) : rond blanc de 44 px, chevron à l'encre.
 - **Pressé / désactivé :** fond assombri à 90 % sous le doigt ; 40 % d'opacité quand l'action est indisponible. Ni survol ni focus visible : l'écran n'a ni souris ni clavier.
 
@@ -495,9 +505,10 @@ Francs et calmes : 44 px de haut, rayon 12 px, libellé demi-gras 15 px, icône 
 - **Background:** `surface` ; `*-fond` quand la carte porte un état en alerte.
 - **Shadow Strategy:** aucune (voir Elevation & Depth).
 - **Border:** aucune. Dans une liste, les lignes sont séparées par des filets `separateur` de 1 px qui commencent au début du texte, pas au bord de la carte.
-- **Internal Padding:** 16 × 20 px pour une carte ; 14 × 18 px pour une tuile, le verdict et une ligne de node ; 14 × 16 px pour une carte de service.
-- **Tuile chiffrée** (`tuile`) : libellé 13 px moyen gris, chiffre 26 px gras, légende 13 px ; touchable quand elle mène à une page (incidents, Tailscale). Le chiffre prend `*-texte` quand il dit un problème.
-- **Carte de service** (`carte-service`) : point d'état 10 px, nom 16 px demi-gras (abrégé à 20 caractères), latence à droite ; adresse en mono ; sparkline 24 h de 22 px ; nombre de nodes et note en pied. Blanche en ligne, `warn-fond` ou `down-fond` en alerte, ses textes secondaires passant alors en `*-texte-fond`.
+- **Internal Padding:** 16 × 20 px pour une carte ; 14 × 18 px pour une tuile et une ligne de node ; 18 px de côté pour le verdict et 16 px pour un chiffre du bandeau, centrés en hauteur ; 10 × 13 px pour une carte de service.
+- **Tuile chiffrée** (`tuile`) : libellé 13 px moyen gris, chiffre 26 px gras, légende 13 px ; touchable quand elle mène à une page. Sert sur la page Tailscale. Le chiffre prend `*-texte` quand il dit un problème.
+- **Chiffre du bandeau** (`chiffre-bandeau`) : la tuile sans légende de l'accueil, 164 × 76 px : libellé 12,5 px moyen gris, valeur 22 px gras. Disponibilité 30 j, réponse moyenne, Tailscale (touchable).
+- **Carte de service** (`carte-service`) : trois lignes. Point d'état 9 px, nom 15 px demi-gras (abrégé à 16 caractères), latence à droite ; adresse en mono 12 px (abrégée selon la place que laisse le nombre de nodes), nombre de nodes à droite ; sparkline 24 h de 18 px, note à droite. Blanche en ligne, `warn-fond` ou `down-fond` en alerte, ses textes secondaires passant alors en `*-texte-fond`.
 - **Carte d'incident** : fond `*-fond`, rayon 16 px, rond blanc de 40 px portant l'icône d'état, titre en `*-texte`, boutons de carte alignés sous le texte.
 - **Alerte** (`alerte`) : bandeau `down-fond` de rayon 14 px, icône info `down-texte`, message `down-texte-fond`, en haut d'une page dont l'appel a échoué.
 - **Note d'information** (`note-info`) : `accent-fond`, icône info bleue, texte à l'encre ; explique une situation sans être un état.
@@ -507,10 +518,10 @@ Francs et calmes : 44 px de haut, rayon 12 px, libellé demi-gras 15 px, icône 
 - **Contrôle segmenté** (`segment-rail`, `segment`, `segment-actif`) : rail `piste` de 50 px, rayon 13 px, marge 3 px ; segments de 112 × 44 px (la règle des 44) ; le segment choisi est blanc, texte à l'encre demi-gras ; les autres sont sans fond, en `secondaire`.
 
 ### Carte-verdict
-La signature du système. Pleine largeur sous l'en-tête de l'accueil : rond de 44 px avec la grande icône d'état, titre 22 px gras, une ligne de détail 15 px, et « Voir le détail » à droite quand un problème a sa page. Teintée (`verdict-up`, `verdict-warn`, `verdict-down` : titre `*-texte`, détail `*-texte-fond`, rond blanc) quand l'état est connu ; blanche (`verdict-perime` : titre à l'encre, détail `secondaire`, rond `creux`) quand il est inconnu ou périmé.
+La signature du système. À gauche du bandeau, sous l'en-tête de l'accueil : rond de 40 px avec l'icône d'état, titre 18 px gras, détail 14 px sur deux lignes au plus. Quand un problème a sa page, toute la carte est touchable et un chevron dans le ton l'annonce à droite. Teintée (`verdict-up`, `verdict-warn`, `verdict-down` : titre `*-texte`, détail `*-texte-fond`, rond blanc) quand l'état est connu ; blanche (`verdict-perime` : titre à l'encre, détail `secondaire`, rond `creux`) quand il est inconnu ou périmé.
 
 ### Courbes et barres
-- **Sparkline** : 22 px de haut, trait de 2 px ; `tertiaire` quand tout va bien, `*-plein` quand le service est en alerte ; aucune courbe sous deux mesures, plutôt qu'un trait qui imiterait une donnée.
+- **Sparkline** : 18 px de haut, trait de 2 px ; `tertiaire` quand tout va bien, `*-plein` quand le service est en alerte ; aucune courbe sous deux mesures, plutôt qu'un trait qui imiterait une donnée.
 - **Graphe 24 h** : 200 px de haut ; une courbe par node, en `SERIES` ; trois lignes de grille `separateur` ; graduations et axe du temps en 12 px `secondaire` ; légende en traits de série au-dessus.
 - **Barres 90 jours** : une barre de 30 px par jour, rayon 2 px, écart 2 px ; `piste` sans donnée, `up-plein` à 45 % les jours sans incident, `*-plein` les jours à problème.
 - **Barres de durée** : 8 px sur une piste `piste`, rayon 4 px ; `*-plein` pour un incident en cours, `tertiaire` une fois résolu.
@@ -524,7 +535,7 @@ Bande pleine `down-texte`, bord à bord au-dessus de toute la page, texte blanc 
 ## Do's and Don'ts
 
 ### Do:
-- **Toujours** poser le verdict en tête de l'accueil, pleine largeur, teinté de l'état.
+- **Toujours** poser le verdict en tête de l'accueil, teinté de l'état, et faire tenir l'accueil sur un écran.
 - **Toujours** dire un état par sa forme et sa couleur (rond plein, carré, anneau, rond gris, via `commun::point`), ou par un libellé.
 - **Toujours** prendre `*-texte-fond` pour le texte secondaire posé sur un fond `*-fond`, et `*-texte` pour un mot d'état sur blanc.
 - **Toujours** afficher l'état périmé sans teinte, et laisser le bandeau hors ligne le dire.
