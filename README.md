@@ -17,7 +17,8 @@ Testé sur une Lenovo Tab K10 (Android 12, écran 1920 × 1200).
 ## Ce que ça fait
 
 - **Contrôles** : HTTP(S) (code attendu, texte attendu, champs JSON attendus), port TCP, ping ICMP
-  (sans root) et résolution DNS.
+  (sans root) et résolution DNS. Une node n'est déclarée lente qu'après 3 contrôles lents d'affilée
+  (`lenteurs_avant_alerte`) : un pic isolé, souvent dû à la tablette, reste visible dans la courbe sans alerter.
 - **Services à plusieurs nodes** : le service est *dégradé* si une node tombe, *hors ligne* si toutes tombent.
   Chaque serveur derrière un même nom peut être interrogé à part (`ip = "…"`, comme `curl --resolve`).
 - **Réseaux privés** : résolution par un DNS précis (`resolveur`) et vérification que le contrôle passe

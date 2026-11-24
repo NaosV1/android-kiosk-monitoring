@@ -6,6 +6,8 @@
 intervalle = 30            # secondes entre deux controles d'une node
 delai = 10                 # temps max d'une reponse, en secondes
 seuil_lent = 1000          # au-dela (en ms), la node est consideree comme lente
+lenteurs_avant_alerte = 3  # controles lents d'affilee avant de la declarer lente (les pics isoles,
+                           # souvent dus a la tablette, restent dans la courbe sans alerter)
 echecs_avant_panne = 2     # echecs d'affilee avant de declarer une node hors ligne
 veille_minutes = 5         # passage en ecran de veille sans toucher l'ecran (0 = jamais)
 verifier_certificats = true

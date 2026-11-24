@@ -153,6 +153,15 @@ pub fn nom_version(version: &str) -> String {
     }
 }
 
+/// Au plus `n` caracteres, termine par « … » s'il a fallu couper (iced coupe net sinon).
+pub fn abreger(texte: &str, n: usize) -> String {
+    if texte.chars().count() <= n {
+        return texte.to_string();
+    }
+    let debut: String = texte.chars().take(n.saturating_sub(1)).collect();
+    format!("{}…", debut.trim_end())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -207,5 +216,12 @@ mod tests {
         assert_eq!(pluriel(2, "node"), "2 nodes");
         assert_eq!(nom_version("dev"), "dev");
         assert_eq!(nom_version("2.0.4"), "v2.0.4");
+    }
+
+    #[test]
+    fn abreviation() {
+        assert_eq!(abreger("Base de données", 20), "Base de données");
+        assert_eq!(abreger("Service très long nommé", 16), "Service très lo…");
+        assert_eq!(abreger("Service très long", 9), "Service…");
     }
 }

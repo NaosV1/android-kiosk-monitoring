@@ -1,0 +1,754 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-24T20:25:14Z",
+  "title": "Design System: Monitoring",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Bleu signal",
+        "canonical": "#2563EB",
+        "tonalRamp": [
+          "oklch(15% 0.110 263)",
+          "oklch(26% 0.167 263)",
+          "oklch(38% 0.203 263)",
+          "oklch(49% 0.215 263)",
+          "oklch(61% 0.205 263)",
+          "oklch(72% 0.173 263)",
+          "oklch(84% 0.118 263)",
+          "oklch(95% 0.041 263)"
+        ]
+      },
+      "accent-fond": {
+        "role": "primary",
+        "displayName": "Voile bleu",
+        "canonical": "#EAF1FE",
+        "tonalRamp": [
+          "oklch(15% 0.010 263)",
+          "oklch(26% 0.015 263)",
+          "oklch(38% 0.018 263)",
+          "oklch(49% 0.019 263)",
+          "oklch(61% 0.018 263)",
+          "oklch(72% 0.015 263)",
+          "oklch(84% 0.010 263)",
+          "oklch(95% 0.004 263)"
+        ]
+      },
+      "fond": {
+        "role": "neutral",
+        "displayName": "Gris groupé",
+        "canonical": "#F2F2F6",
+        "tonalRamp": [
+          "oklch(15% 0.003 286)",
+          "oklch(26% 0.004 286)",
+          "oklch(38% 0.005 286)",
+          "oklch(49% 0.005 286)",
+          "oklch(61% 0.005 286)",
+          "oklch(72% 0.004 286)",
+          "oklch(84% 0.003 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Blanc carte",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(26% 0.000 0)",
+          "oklch(38% 0.000 0)",
+          "oklch(49% 0.000 0)",
+          "oklch(61% 0.000 0)",
+          "oklch(72% 0.000 0)",
+          "oklch(84% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "creux": {
+        "role": "neutral",
+        "displayName": "Creux",
+        "canonical": "#F2F2F6",
+        "tonalRamp": [
+          "oklch(15% 0.003 286)",
+          "oklch(26% 0.004 286)",
+          "oklch(38% 0.005 286)",
+          "oklch(49% 0.005 286)",
+          "oklch(61% 0.005 286)",
+          "oklch(72% 0.004 286)",
+          "oklch(84% 0.003 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "piste": {
+        "role": "neutral",
+        "displayName": "Piste",
+        "canonical": "#E6E6EB",
+        "tonalRamp": [
+          "oklch(15% 0.003 286)",
+          "oklch(26% 0.005 286)",
+          "oklch(38% 0.006 286)",
+          "oklch(49% 0.007 286)",
+          "oklch(61% 0.006 286)",
+          "oklch(72% 0.005 286)",
+          "oklch(84% 0.004 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "separateur": {
+        "role": "neutral",
+        "displayName": "Filet",
+        "canonical": "#E5E5EA",
+        "tonalRamp": [
+          "oklch(15% 0.003 286)",
+          "oklch(26% 0.005 286)",
+          "oklch(38% 0.006 286)",
+          "oklch(49% 0.007 286)",
+          "oklch(61% 0.006 286)",
+          "oklch(72% 0.005 286)",
+          "oklch(84% 0.004 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "texte": {
+        "role": "neutral",
+        "displayName": "Encre",
+        "canonical": "#1C1C1E",
+        "tonalRamp": [
+          "oklch(15% 0.002 286)",
+          "oklch(26% 0.003 286)",
+          "oklch(38% 0.004 286)",
+          "oklch(49% 0.004 286)",
+          "oklch(61% 0.004 286)",
+          "oklch(72% 0.003 286)",
+          "oklch(84% 0.002 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "secondaire": {
+        "role": "neutral",
+        "displayName": "Gris légende",
+        "canonical": "#636366",
+        "tonalRamp": [
+          "oklch(15% 0.002 286)",
+          "oklch(26% 0.004 286)",
+          "oklch(38% 0.004 286)",
+          "oklch(49% 0.005 286)",
+          "oklch(61% 0.004 286)",
+          "oklch(72% 0.004 286)",
+          "oklch(84% 0.003 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "tertiaire": {
+        "role": "neutral",
+        "displayName": "Gris inerte",
+        "canonical": "#AEAEB2",
+        "tonalRamp": [
+          "oklch(15% 0.003 286)",
+          "oklch(26% 0.004 286)",
+          "oklch(38% 0.005 286)",
+          "oklch(49% 0.006 286)",
+          "oklch(61% 0.005 286)",
+          "oklch(72% 0.005 286)",
+          "oklch(84% 0.003 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "up-plein": {
+        "role": "etat",
+        "displayName": "Vert en ligne, plein",
+        "canonical": "#34C759",
+        "tonalRamp": [
+          "oklch(15% 0.099 147)",
+          "oklch(26% 0.151 147)",
+          "oklch(38% 0.183 147)",
+          "oklch(49% 0.194 147)",
+          "oklch(61% 0.185 147)",
+          "oklch(72% 0.156 147)",
+          "oklch(84% 0.107 147)",
+          "oklch(95% 0.037 147)"
+        ]
+      },
+      "up-texte": {
+        "role": "etat",
+        "displayName": "Vert en ligne, texte",
+        "canonical": "#1B7F3B",
+        "tonalRamp": [
+          "oklch(15% 0.069 149)",
+          "oklch(26% 0.106 149)",
+          "oklch(38% 0.128 149)",
+          "oklch(49% 0.136 149)",
+          "oklch(61% 0.130 149)",
+          "oklch(72% 0.109 149)",
+          "oklch(84% 0.075 149)",
+          "oklch(95% 0.026 149)"
+        ]
+      },
+      "up-fond": {
+        "role": "etat",
+        "displayName": "Vert en ligne, fond",
+        "canonical": "#E8F6EC",
+        "tonalRamp": [
+          "oklch(15% 0.010 155)",
+          "oklch(26% 0.015 155)",
+          "oklch(38% 0.019 155)",
+          "oklch(49% 0.020 155)",
+          "oklch(61% 0.019 155)",
+          "oklch(72% 0.016 155)",
+          "oklch(84% 0.011 155)",
+          "oklch(95% 0.004 155)"
+        ]
+      },
+      "up-texte-fond": {
+        "role": "etat",
+        "displayName": "Vert en ligne, texte sur fond",
+        "canonical": "#17602E",
+        "tonalRamp": [
+          "oklch(15% 0.054 150)",
+          "oklch(26% 0.083 150)",
+          "oklch(38% 0.101 150)",
+          "oklch(49% 0.107 150)",
+          "oklch(61% 0.102 150)",
+          "oklch(72% 0.086 150)",
+          "oklch(84% 0.059 150)",
+          "oklch(95% 0.020 150)"
+        ]
+      },
+      "warn-plein": {
+        "role": "etat",
+        "displayName": "Ambre dégradé, plein",
+        "canonical": "#FF9F0A",
+        "tonalRamp": [
+          "oklch(15% 0.087 67)",
+          "oklch(26% 0.133 67)",
+          "oklch(38% 0.161 67)",
+          "oklch(49% 0.171 67)",
+          "oklch(61% 0.163 67)",
+          "oklch(72% 0.138 67)",
+          "oklch(84% 0.094 67)",
+          "oklch(95% 0.033 67)"
+        ]
+      },
+      "warn-texte": {
+        "role": "etat",
+        "displayName": "Ambre dégradé, texte",
+        "canonical": "#A15C00",
+        "tonalRamp": [
+          "oklch(15% 0.063 63)",
+          "oklch(26% 0.097 63)",
+          "oklch(38% 0.117 63)",
+          "oklch(49% 0.124 63)",
+          "oklch(61% 0.119 63)",
+          "oklch(72% 0.100 63)",
+          "oklch(84% 0.068 63)",
+          "oklch(95% 0.024 63)"
+        ]
+      },
+      "warn-fond": {
+        "role": "etat",
+        "displayName": "Ambre dégradé, fond",
+        "canonical": "#FFF4E3",
+        "tonalRamp": [
+          "oklch(15% 0.013 79)",
+          "oklch(26% 0.020 79)",
+          "oklch(38% 0.024 79)",
+          "oklch(49% 0.025 79)",
+          "oklch(61% 0.024 79)",
+          "oklch(72% 0.020 79)",
+          "oklch(84% 0.014 79)",
+          "oklch(95% 0.005 79)"
+        ]
+      },
+      "warn-texte-fond": {
+        "role": "etat",
+        "displayName": "Ambre dégradé, texte sur fond",
+        "canonical": "#774400",
+        "tonalRamp": [
+          "oklch(15% 0.051 64)",
+          "oklch(26% 0.077 64)",
+          "oklch(38% 0.093 64)",
+          "oklch(49% 0.099 64)",
+          "oklch(61% 0.095 64)",
+          "oklch(72% 0.080 64)",
+          "oklch(84% 0.054 64)",
+          "oklch(95% 0.019 64)"
+        ]
+      },
+      "down-plein": {
+        "role": "etat",
+        "displayName": "Rouge hors ligne, plein",
+        "canonical": "#FF3B30",
+        "tonalRamp": [
+          "oklch(15% 0.118 29)",
+          "oklch(26% 0.181 29)",
+          "oklch(38% 0.218 29)",
+          "oklch(49% 0.232 29)",
+          "oklch(61% 0.221 29)",
+          "oklch(72% 0.187 29)",
+          "oklch(84% 0.127 29)",
+          "oklch(95% 0.044 29)"
+        ]
+      },
+      "down-texte": {
+        "role": "etat",
+        "displayName": "Rouge hors ligne, texte",
+        "canonical": "#C8261B",
+        "tonalRamp": [
+          "oklch(15% 0.101 29)",
+          "oklch(26% 0.154 29)",
+          "oklch(38% 0.187 29)",
+          "oklch(49% 0.198 29)",
+          "oklch(61% 0.189 29)",
+          "oklch(72% 0.159 29)",
+          "oklch(84% 0.109 29)",
+          "oklch(95% 0.038 29)"
+        ]
+      },
+      "down-fond": {
+        "role": "etat",
+        "displayName": "Rouge hors ligne, fond",
+        "canonical": "#FDECEA",
+        "tonalRamp": [
+          "oklch(15% 0.010 26)",
+          "oklch(26% 0.015 26)",
+          "oklch(38% 0.018 26)",
+          "oklch(49% 0.019 26)",
+          "oklch(61% 0.018 26)",
+          "oklch(72% 0.015 26)",
+          "oklch(84% 0.010 26)",
+          "oklch(95% 0.004 26)"
+        ]
+      },
+      "down-texte-fond": {
+        "role": "etat",
+        "displayName": "Rouge hors ligne, texte sur fond",
+        "canonical": "#8F1D14",
+        "tonalRamp": [
+          "oklch(15% 0.077 29)",
+          "oklch(26% 0.117 29)",
+          "oklch(38% 0.142 29)",
+          "oklch(49% 0.151 29)",
+          "oklch(61% 0.144 29)",
+          "oklch(72% 0.121 29)",
+          "oklch(84% 0.083 29)",
+          "oklch(95% 0.029 29)"
+        ]
+      },
+      "series-0": {
+        "role": "serie",
+        "displayName": "Cyan",
+        "canonical": "#0891B2",
+        "tonalRamp": [
+          "oklch(15% 0.057 222)",
+          "oklch(26% 0.086 222)",
+          "oklch(38% 0.104 222)",
+          "oklch(49% 0.111 222)",
+          "oklch(61% 0.106 222)",
+          "oklch(72% 0.089 222)",
+          "oklch(84% 0.061 222)",
+          "oklch(95% 0.021 222)"
+        ]
+      },
+      "series-1": {
+        "role": "serie",
+        "displayName": "Violet",
+        "canonical": "#9333EA",
+        "tonalRamp": [
+          "oklch(15% 0.129 302)",
+          "oklch(26% 0.196 302)",
+          "oklch(38% 0.238 302)",
+          "oklch(49% 0.252 302)",
+          "oklch(61% 0.241 302)",
+          "oklch(72% 0.203 302)",
+          "oklch(84% 0.139 302)",
+          "oklch(95% 0.048 302)"
+        ]
+      },
+      "series-2": {
+        "role": "serie",
+        "displayName": "Ardoise",
+        "canonical": "#64748B",
+        "tonalRamp": [
+          "oklch(15% 0.021 257)",
+          "oklch(26% 0.032 257)",
+          "oklch(38% 0.038 257)",
+          "oklch(49% 0.041 257)",
+          "oklch(61% 0.039 257)",
+          "oklch(72% 0.033 257)",
+          "oklch(84% 0.022 257)",
+          "oklch(95% 0.008 257)"
+        ]
+      },
+      "series-3": {
+        "role": "serie",
+        "displayName": "Encre",
+        "canonical": "#1C1C1E",
+        "tonalRamp": [
+          "oklch(15% 0.002 286)",
+          "oklch(26% 0.003 286)",
+          "oklch(38% 0.004 286)",
+          "oklch(49% 0.004 286)",
+          "oklch(61% 0.004 286)",
+          "oklch(72% 0.003 286)",
+          "oklch(84% 0.002 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "nuit-fond": {
+        "role": "veille",
+        "displayName": "Noir chevet",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(26% 0.000 0)",
+          "oklch(38% 0.000 0)",
+          "oklch(49% 0.000 0)",
+          "oklch(61% 0.000 0)",
+          "oklch(72% 0.000 0)",
+          "oklch(84% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "nuit-texte": {
+        "role": "veille",
+        "displayName": "Blanc lune",
+        "canonical": "#F2F2F7",
+        "tonalRamp": [
+          "oklch(15% 0.003 286)",
+          "oklch(26% 0.005 286)",
+          "oklch(38% 0.006 286)",
+          "oklch(49% 0.007 286)",
+          "oklch(61% 0.006 286)",
+          "oklch(72% 0.005 286)",
+          "oklch(84% 0.004 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "nuit-secondaire": {
+        "role": "veille",
+        "displayName": "Gris nuit",
+        "canonical": "#98989F",
+        "tonalRamp": [
+          "oklch(15% 0.005 286)",
+          "oklch(26% 0.008 286)",
+          "oklch(38% 0.010 286)",
+          "oklch(49% 0.010 286)",
+          "oklch(61% 0.010 286)",
+          "oklch(72% 0.008 286)",
+          "oklch(84% 0.006 286)",
+          "oklch(95% 0.002 286)"
+        ]
+      },
+      "nuit-discret": {
+        "role": "veille",
+        "displayName": "Gris discret",
+        "canonical": "#8E8E93",
+        "tonalRamp": [
+          "oklch(15% 0.004 286)",
+          "oklch(26% 0.006 286)",
+          "oklch(38% 0.007 286)",
+          "oklch(49% 0.007 286)",
+          "oklch(61% 0.007 286)",
+          "oklch(72% 0.006 286)",
+          "oklch(84% 0.004 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "nuit-up": {
+        "role": "veille",
+        "displayName": "Vert nuit",
+        "canonical": "#30D158",
+        "tonalRamp": [
+          "oklch(15% 0.106 147)",
+          "oklch(26% 0.162 147)",
+          "oklch(38% 0.196 147)",
+          "oklch(49% 0.208 147)",
+          "oklch(61% 0.199 147)",
+          "oklch(72% 0.167 147)",
+          "oklch(84% 0.114 147)",
+          "oklch(95% 0.040 147)"
+        ]
+      },
+      "nuit-warn": {
+        "role": "veille",
+        "displayName": "Ambre nuit",
+        "canonical": "#FF9F0A",
+        "tonalRamp": [
+          "oklch(15% 0.087 67)",
+          "oklch(26% 0.133 67)",
+          "oklch(38% 0.161 67)",
+          "oklch(49% 0.171 67)",
+          "oklch(61% 0.163 67)",
+          "oklch(72% 0.138 67)",
+          "oklch(84% 0.094 67)",
+          "oklch(95% 0.033 67)"
+        ]
+      },
+      "nuit-down": {
+        "role": "veille",
+        "displayName": "Rouge nuit",
+        "canonical": "#FF453A",
+        "tonalRamp": [
+          "oklch(15% 0.114 28)",
+          "oklch(26% 0.174 28)",
+          "oklch(38% 0.210 28)",
+          "oklch(49% 0.224 28)",
+          "oklch(61% 0.213 28)",
+          "oklch(72% 0.180 28)",
+          "oklch(84% 0.123 28)",
+          "oklch(95% 0.042 28)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "horloge-veille": {
+        "displayName": "Horloge de veille",
+        "purpose": "L'heure de l'écran de veille, seule au centre."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Numéros de version de la page Mise à jour."
+      },
+      "horloge": {
+        "displayName": "Horloge",
+        "purpose": "L'heure en haut à droite de chaque page."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Titre de page, sur une ligne."
+      },
+      "chiffre": {
+        "displayName": "Chiffre",
+        "purpose": "Valeur d'une tuile chiffrée."
+      },
+      "verdict": {
+        "displayName": "Verdict",
+        "purpose": "Titre de la carte-verdict et de la fenêtre de confirmation."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Titres de section et de carte."
+      },
+      "nom": {
+        "displayName": "Nom",
+        "purpose": "Nom d'un service ou d'une node."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texte courant et messages."
+      },
+      "bouton": {
+        "displayName": "Bouton",
+        "purpose": "Libellés de boutons, de liens et du segment choisi."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Ligne de détail sous un titre."
+      },
+      "pastille": {
+        "displayName": "Pastille",
+        "purpose": "Libellé d'une capsule d'état et du bandeau hors ligne."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Libellé d'une tuile."
+      },
+      "legende": {
+        "displayName": "Légende",
+        "purpose": "Légendes de tuile et de graphe."
+      },
+      "axe": {
+        "displayName": "Axe",
+        "purpose": "Graduations et axe du temps des graphes."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Adresses, IP, chemins, heures d'événement."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "etat-instantane",
+        "value": "0ms",
+        "purpose": "Pressé, choisi, actif : le changement d'état est immédiat, sans transition (rendu logiciel, pas d'animation continue)."
+      },
+      {
+        "name": "toast",
+        "value": "2500ms",
+        "purpose": "Durée d'affichage du toast ; il apparaît et disparaît sans fondu."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton principal",
+      "kind": "button",
+      "refersTo": "bouton-principal",
+      "description": "L'action qui engage, en bleu plein. Tactile seul : pressé assombri à 90 %, désactivé à 40 %, ni survol ni focus.",
+      "html": "<button class=\"ds-btn-principal\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"><path d=\"M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5M4.5 19.5h15\"/></svg><span>Mettre à jour</span></button>",
+      "css": ".ds-btn-principal { font-family: Inter, sans-serif; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border: none; border-radius: 12px; background: #2563EB; color: #FFFFFF; font-size: 15px; font-weight: 600; } .ds-btn-principal:active { filter: brightness(0.9); } .ds-btn-principal:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Bouton secondaire",
+      "kind": "button",
+      "refersTo": "bouton",
+      "description": "Action courante, bleu sur voile bleu (« Relancer les contrôles »).",
+      "html": "<button class=\"ds-btn\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"><path d=\"M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6\"/></svg><span>Relancer les contrôles</span></button>",
+      "css": ".ds-btn { font-family: Inter, sans-serif; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: none; border-radius: 12px; background: #EAF1FE; color: #2563EB; font-size: 15px; font-weight: 600; } .ds-btn:active { filter: brightness(0.9); } .ds-btn:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Bouton neutre",
+      "kind": "button",
+      "refersTo": "bouton-neutre",
+      "description": "Pour renoncer (« Annuler »), à l'encre sur le creux gris.",
+      "html": "<button class=\"ds-btn-neutre\">Annuler</button>",
+      "css": ".ds-btn-neutre { font-family: Inter, sans-serif; height: 44px; padding: 0 18px; border: none; border-radius: 12px; background: #F2F2F6; color: #1C1C1E; font-size: 15px; font-weight: 600; } .ds-btn-neutre:active { filter: brightness(0.9); }"
+    },
+    {
+      "name": "Capsules d'état",
+      "kind": "chip",
+      "refersTo": "pastille-up",
+      "description": "Capsule de 30 px à côté d'un titre : point à la forme de l'état et libellé dans le ton, sur le fond teinté.",
+      "html": "<div class=\"ds-pastilles\"><span class=\"ds-pastille ds-up\"><i></i>Opérationnel</span><span class=\"ds-pastille ds-warn\"><i></i>Dégradé, 2 nodes sur 3</span><span class=\"ds-pastille ds-down\"><i></i>Hors ligne</span><span class=\"ds-pastille ds-info\">Nouvelle version disponible</span></div>",
+      "css": ".ds-pastilles { display: flex; flex-wrap: wrap; gap: 10px; } .ds-pastille { font-family: Inter, sans-serif; display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 15px; font-size: 14px; font-weight: 600; box-sizing: border-box; } .ds-pastille i { width: 9px; height: 9px; box-sizing: border-box; } .ds-up { background: #E8F6EC; color: #1B7F3B; } .ds-up i { background: #34C759; border-radius: 50%; } .ds-warn { background: #FFF4E3; color: #A15C00; } .ds-warn i { background: #FF9F0A; border-radius: 2.25px; } .ds-down { background: #FDECEA; color: #C8261B; } .ds-down i { border: 2px solid #FF3B30; border-radius: 50%; } .ds-info { background: #EAF1FE; color: #2563EB; }"
+    },
+    {
+      "name": "Barre latérale",
+      "kind": "nav",
+      "refersTo": "nav-lien-actif",
+      "description": "Navigation blanche de 220 px : liens de 48 px, lien actif sur voile bleu, compteurs en capsule pleine.",
+      "html": "<nav class=\"ds-nav\"><div class=\"ds-nav-titre\">Monitoring</div><a class=\"ds-nav-lien ds-actif\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.9\"><rect x=\"3.5\" y=\"3.5\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"13.5\" y=\"3.5\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3.5\" y=\"13.5\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"13.5\" y=\"13.5\" width=\"7\" height=\"7\" rx=\"1.5\"/></svg><span>Vue d'ensemble</span></a><a class=\"ds-nav-lien\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.9\"><path d=\"M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16M10 20.5a2 2 0 0 0 4 0\"/></svg><span>Incidents</span><b class=\"ds-compteur ds-compteur-down\">3</b></a><a class=\"ds-nav-lien\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.9\"><circle cx=\"6\" cy=\"12\" r=\"2.5\"/><circle cx=\"18\" cy=\"6\" r=\"2.5\"/><circle cx=\"18\" cy=\"18\" r=\"2.5\"/><path d=\"M8.2 10.9l7.6-3.8M8.2 13.1l7.6 3.8\"/></svg><span>Tailscale</span></a><a class=\"ds-nav-lien\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"><path d=\"M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5M4.5 19.5h15\"/></svg><span>Mise à jour</span><b class=\"ds-compteur ds-compteur-info\">1</b></a><a class=\"ds-nav-lien\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.9\"><path d=\"M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z\"/></svg><span>Veille</span></a></nav>",
+      "css": ".ds-nav { font-family: Inter, sans-serif; width: 220px; box-sizing: border-box; padding: 22px 14px; background: #FFFFFF; border-right: 1px solid #E5E5EA; display: flex; flex-direction: column; gap: 4px; } .ds-nav-titre { font-size: 20px; font-weight: 700; color: #1C1C1E; padding: 6px 0 22px 12px; } .ds-nav-lien { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 12px; border-radius: 12px; color: #1C1C1E; font-size: 15px; font-weight: 500; text-decoration: none; } .ds-nav-lien svg { color: #636366; flex: none; } .ds-nav-lien span { flex: 1; } .ds-nav-lien:active { background: rgba(0, 0, 0, 0.06); } .ds-nav-lien.ds-actif { background: #EAF1FE; color: #2563EB; font-weight: 600; } .ds-nav-lien.ds-actif svg { color: #2563EB; } .ds-compteur { font-size: 13px; font-weight: 700; color: #FFFFFF; padding: 2px 8px; border-radius: 11px; } .ds-compteur-down { background: #C8261B; } .ds-compteur-info { background: #2563EB; }"
+    },
+    {
+      "name": "Contrôle segmenté",
+      "kind": "nav",
+      "refersTo": "segment-actif",
+      "description": "Filtre à trois choix : rail gris de 44 px aux rayons concentriques (13 px autour de 10 px), segment choisi en blanc.",
+      "html": "<div class=\"ds-segments\"><button class=\"ds-segment ds-choisi\">Tous</button><button class=\"ds-segment\">En cours</button><button class=\"ds-segment\">Résolus</button></div>",
+      "css": ".ds-segments { display: inline-flex; gap: 2px; padding: 3px; border-radius: 13px; background: #E6E6EB; } .ds-segment { font-family: Inter, sans-serif; width: 112px; height: 44px; border: none; border-radius: 10px; background: transparent; color: #636366; font-size: 15px; font-weight: 500; } .ds-segment:active { background: rgba(0, 0, 0, 0.06); } .ds-segment.ds-choisi { background: #FFFFFF; color: #1C1C1E; font-weight: 600; }"
+    },
+    {
+      "name": "Tuile chiffrée",
+      "kind": "card",
+      "refersTo": "tuile",
+      "description": "Libellé gris, grand chiffre gras et son unité en gris, légende ; le chiffre prend le ton d'état seulement s'il dit un problème.",
+      "html": "<div class=\"ds-tuiles\"><div class=\"ds-tuile\"><span class=\"ds-tuile-lib\">Disponibilité sur 30 jours</span><span class=\"ds-tuile-val\">99,97<small>%</small></span><span class=\"ds-tuile-leg\">moyenne de 7 services</span></div><div class=\"ds-tuile\"><span class=\"ds-tuile-lib\">Incidents en cours</span><span class=\"ds-tuile-val ds-tuile-down\">3</span><span class=\"ds-tuile-leg\">3 à acquitter</span></div></div>",
+      "css": ".ds-tuiles { display: flex; gap: 14px; padding: 16px; background: #F2F2F6; } .ds-tuile { font-family: Inter, sans-serif; flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-radius: 16px; background: #FFFFFF; } .ds-tuile-lib { font-size: 13px; font-weight: 500; color: #636366; } .ds-tuile-val { font-size: 26px; font-weight: 700; color: #1C1C1E; white-space: nowrap; } .ds-tuile-val small { font-size: 17px; font-weight: 600; color: #636366; margin-left: 4px; } .ds-tuile-down { color: #C8261B; } .ds-tuile-leg { font-size: 13px; color: #636366; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }"
+    },
+    {
+      "name": "Carte de service",
+      "kind": "card",
+      "refersTo": "carte-service",
+      "description": "Un service sur l'accueil : blanche et calme en ligne (sparkline grise), teintée en alerte avec ses textes secondaires en texte sur fond.",
+      "html": "<div class=\"ds-services\"><button class=\"ds-service\"><span class=\"ds-service-haut\"><i class=\"ds-pt-up\"></i><b>API monitoring</b><em>3 ms</em></span><code>127.0.0.1</code><svg class=\"ds-spark\" viewBox=\"0 0 200 22\" preserveAspectRatio=\"none\"><polyline points=\"0,14 30,13 60,14 90,13 100,12 105,6 112,5 116,10 140,12 170,13 200,12\" fill=\"none\" stroke=\"#AEAEB2\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/></svg><span class=\"ds-service-bas\"><span>1 node</span><span>100 % sur 30 j</span></span></button><button class=\"ds-service ds-service-down\"><span class=\"ds-service-haut\"><i class=\"ds-pt-down\"></i><b>Base de données</b><em>Hors ligne</em></span><code>127.0.0.1:5</code><span class=\"ds-spark\"></span><span class=\"ds-service-bas\"><span>0/1 node</span><span class=\"ds-note-down\">depuis 11 s</span></span></button></div>",
+      "css": ".ds-services { display: flex; gap: 12px; padding: 16px; background: #F2F2F6; } .ds-service { font-family: Inter, sans-serif; flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border: none; border-radius: 14px; background: #FFFFFF; color: #636366; text-align: left; } .ds-service:active { filter: brightness(0.9); } .ds-service-haut { display: flex; align-items: center; gap: 12px; } .ds-service-haut b { flex: 1; font-size: 16px; font-weight: 600; color: #1C1C1E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-service-haut em { font-style: normal; font-size: 15px; font-weight: 600; color: #1C1C1E; } .ds-service code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; } .ds-spark { display: block; width: 100%; height: 22px; } .ds-service-bas { display: flex; justify-content: space-between; font-size: 13px; } .ds-service-bas span:last-child { font-weight: 500; } .ds-pt-up { width: 10px; height: 10px; border-radius: 50%; background: #34C759; flex: none; } .ds-pt-down { width: 10px; height: 10px; border-radius: 50%; border: 2.2px solid #FF3B30; box-sizing: border-box; flex: none; } .ds-service-down { background: #FDECEA; color: #8F1D14; } .ds-service-down .ds-service-haut em, .ds-note-down { color: #C8261B; }"
+    },
+    {
+      "name": "Carte-verdict",
+      "kind": "custom",
+      "refersTo": "verdict-down",
+      "description": "La signature : l'état global en une carte pleine largeur, teintée de l'état, avec son lien d'action dans le ton.",
+      "html": "<div class=\"ds-verdict-fond\"><div class=\"ds-verdict\"><span class=\"ds-verdict-rond\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2.4\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg></span><span class=\"ds-verdict-textes\"><b>3 problèmes en cours</b><span>Base de données hors ligne, Cluster web dégradé</span></span><button class=\"ds-lien\">Voir le détail<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2.2\"><path d=\"M9 6l6 6-6 6\"/></svg></button></div></div>",
+      "css": ".ds-verdict-fond { padding: 16px; background: #F2F2F6; } .ds-verdict { font-family: Inter, sans-serif; display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-radius: 16px; background: #FDECEA; } .ds-verdict-rond { width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; color: #C8261B; display: flex; align-items: center; justify-content: center; flex: none; } .ds-verdict-textes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .ds-verdict-textes b { font-size: 22px; font-weight: 700; color: #C8261B; white-space: nowrap; } .ds-verdict-textes span { font-size: 15px; color: #8F1D14; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-lien { font-family: Inter, sans-serif; display: inline-flex; align-items: center; gap: 4px; height: 44px; padding: 0 12px; border: none; border-radius: 10px; background: transparent; color: #C8261B; font-size: 15px; font-weight: 600; } .ds-lien:active { background: rgba(0, 0, 0, 0.06); }"
+    },
+    {
+      "name": "Points d'état",
+      "kind": "custom",
+      "refersTo": "pastille-up",
+      "description": "Une forme par état, pour ne jamais dépendre de la couleur seule : rond plein, carré, anneau, rond gris.",
+      "html": "<div class=\"ds-points\"><span><i class=\"ds-p ds-p-up\"></i>En ligne</span><span><i class=\"ds-p ds-p-warn\"></i>Dégradé ou lent</span><span><i class=\"ds-p ds-p-down\"></i>Hors ligne</span><span><i class=\"ds-p ds-p-inconnu\"></i>Inconnu</span></div>",
+      "css": ".ds-points { font-family: Inter, sans-serif; display: flex; gap: 24px; font-size: 14px; color: #1C1C1E; } .ds-points span { display: inline-flex; align-items: center; gap: 8px; } .ds-p { width: 10px; height: 10px; box-sizing: border-box; } .ds-p-up { background: #34C759; border-radius: 50%; } .ds-p-warn { background: #FF9F0A; border-radius: 2.5px; } .ds-p-down { border: 2.2px solid #FF3B30; border-radius: 50%; } .ds-p-inconnu { background: #AEAEB2; border-radius: 50%; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La vigie de bureau",
+    "overview": "Une tablette posée à côté de l'écran de travail, toujours allumée, lue de près et touchée souvent. Elle se tait quand tout va bien et parle net quand quelque chose casse : le verdict occupe une carte pleine largeur en tête de l'accueil, teintée de l'état, et tout le reste (chiffres, services, courbes) se lit ensuite. Le registre est celui d'une app système de tablette, avec Apple Maison / Santé pour étalon : fond gris groupé clair, cartes blanches aux grands rayons sans bordure ni ombre, filets gris fins, Inter en casse de phrase, gros chiffres gras.\n\nLa couleur est rare et toujours signifiante. Le bleu est la seule voix d'action ; le vert, l'ambre et le rouge ne disent qu'un état, et chaque état a aussi sa forme, pour ne jamais dépendre de la couleur seule. Quand le serveur ne répond plus, l'affichage figé perd ses teintes : seul un bandeau rouge dit que ce qu'on voit est périmé. La veille bascule dans le noir d'une horloge de chevet.\n\nLa matière est contrainte par la machine : rendu logiciel tiny-skia, sans GPU. Pas d'ombre, de flou, de dégradé ni d'animation continue ; la profondeur vient du seul écart entre le gris du fond et le blanc des cartes. Rejet fondateur : la grille sombre de cartes néon et ses bordures colorées partout.\n\nToutes les mesures de ce document sont en pixels logiques d'une maquette 1280 × 800, agrandie ×1,5 sur l'écran 1920 × 1200 de la tablette : une cible de 44 px logiques fait 66 px physiques.",
+    "keyCharacteristics": [
+      "Le verdict d'abord : une carte pleine largeur, teintée de l'état, sous le titre de l'accueil.",
+      "Une seule élévation : la carte blanche (`surface`) sur le gris groupé (`fond`), sans bordure ni ombre.",
+      "Une seule couleur d'action : le bleu `accent`.",
+      "Trois tons d'état (up, warn, down), chacun en quatre rôles : plein, texte, fond, texte sur fond.",
+      "Une forme par état : rond plein, carré, anneau, rond gris.",
+      "Inter en casse de phrase, chiffres gras ; JetBrains Mono pour les adresses, IP et heures.",
+      "Rien d'animé en continu ; tout se touche du doigt, cibles de 44 px au moins."
+    ],
+    "rules": [
+      {
+        "name": "La règle de la voix bleue",
+        "body": "Le bleu `accent` est la seule couleur d'action. Seule exception, voulue : sur une surface teintée d'un état (carte-verdict, carte d'incident), le lien ou le bouton d'action prend le texte de ce ton (« Voir le détail », « Acquitter »), pour ne pas poser du bleu sur du rouge.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle des états réservés",
+        "body": "Le vert, l'ambre et le rouge ne disent qu'un état, jamais un décor ni une catégorie. Un état s'affiche en point plein (`*-plein`), en mot ou chiffre teinté sur blanc (`*-texte`), ou en surface teintée (`*-fond`) dont le texte secondaire prend `*-texte-fond`.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle du calme",
+        "body": "Quand tout va bien, seul le verdict est vert. Les cartes des services en ligne restent blanches, leur sparkline est en `tertiaire`, les jours sans incident des barres 90 jours sont à 45 % de `up-plein`, et « Connecté » reste à l'encre.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle du périmé incolore",
+        "body": "Serveur injoignable : l'état figé s'affiche sans teinte (points gris, textes en `secondaire`, verdict blanc « État inconnu »). Seul le bandeau rouge du haut parle.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle du chiffre gras",
+        "body": "Une valeur est toujours plus grande et plus grasse que son libellé ; l'unité la suit, plus petite et en gris (« 99,97 % », « 1 ms »).",
+        "section": "typography"
+      },
+      {
+        "name": "La règle de la casse de phrase",
+        "body": "Titres, libellés et boutons en casse de phrase, sans capitales ni lettres espacées ; seuls les sigles (TCP, HTTP, DERP) restent en capitales.",
+        "section": "typography"
+      },
+      {
+        "name": "La règle de la ligne unique",
+        "body": "Une ligne de métadonnées tient sur une ligne : au plus un « · » pour séparer deux faits, et ce qui déborde est abrégé avec « … » (`format::abreger`) ou coupé par son conteneur, jamais renvoyé à la ligne.",
+        "section": "typography"
+      },
+      {
+        "name": "La règle du mono pour les données",
+        "body": "JetBrains Mono est réservé à ce qu'on pourrait copier dans un terminal : adresse, IP, chemin, heure d'événement. Jamais pour un libellé.",
+        "section": "typography"
+      },
+      {
+        "name": "La règle des 44",
+        "body": "Toute cible tactile fait au moins 44 px de haut (`commun::CIBLE`, 66 px physiques) ; les liens de la barre latérale font 48 px, une ligne d'événement 44 px.",
+        "section": "layout"
+      },
+      {
+        "name": "La règle de la carte unique",
+        "body": "La carte blanche est la seule élévation : pas de bordure, pas d'ombre. Sous le doigt, un élément s'assombrit (son fond × 0,9, ou un voile noir à 6 % s'il n'a pas de fond) ; désactivé, il passe à 40 % d'opacité. Rien ne bouge entre deux états.",
+        "section": "elevation"
+      },
+      {
+        "name": "La règle d'une forme par état",
+        "body": "Chaque état a sa forme de point (`commun::point`), pour ne jamais dépendre de la couleur seule : rond plein (en ligne), carré aux coins de 25 % (dégradé ou lent), anneau au trait de 22 % de la taille, 2 px au moins (hors ligne), rond gris (inconnu). Les grandes icônes d'état suivent : coche, triangle, croix, trois points.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Toujours** poser le verdict en tête de l'accueil, pleine largeur, teinté de l'état.",
+      "**Toujours** dire un état par sa forme et sa couleur (rond plein, carré, anneau, rond gris, via `commun::point`), ou par un libellé.",
+      "**Toujours** prendre `*-texte-fond` pour le texte secondaire posé sur un fond `*-fond`, et `*-texte` pour un mot d'état sur blanc.",
+      "**Toujours** afficher l'état périmé sans teinte, et laisser le bandeau hors ligne le dire.",
+      "**Toujours** abréger avec « … » (`format::abreger`) plutôt que renvoyer une métadonnée à la ligne.",
+      "**Toujours** donner au moins 44 px de haut à ce qui se touche.",
+      "**Toujours** réserver la palette `nuit` à la veille."
+    ],
+    "donts": [
+      "**Jamais** d'ombre, de flou, de dégradé ni d'animation continue : le rendu est logiciel, sans GPU.",
+      "**Jamais** de bordure sur une carte, ni de bordure colorée pour dire un état : la grille sombre de cartes néon est le rejet fondateur.",
+      "**Jamais** de vert, d'ambre ou de rouge pour décorer ou catégoriser, ni pour une action hors d'une surface teintée de cet état ; le bleu est la seule couleur d'action.",
+      "**Jamais** une couleur de `SERIES` pour dire un état, ni un ton d'état pour tracer une node.",
+      "**Jamais** plus d'un « · » dans une ligne de métadonnées.",
+      "**Jamais** de libellé en capitales ou en lettres espacées.",
+      "**Jamais** de texte en `tertiaire`.",
+      "**Jamais** de courbe ni de chiffre inventé quand la mesure manque : « — », « … » ou pas de courbe."
+    ]
+  }
+}

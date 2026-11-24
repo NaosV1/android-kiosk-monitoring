@@ -20,7 +20,6 @@ pub enum Icone {
     Tailscale,
     Cloche,
     Lune,
-    Pouls,
     Gauche,
     Droite,
     Relancer,
@@ -49,8 +48,13 @@ pub fn icone<'a, M: 'a>(
     .into()
 }
 
-/// Icone d'etat : coche, triangle, croix ou points de suspension.
+/// Icone d'etat (coche, triangle, croix ou points de suspension) dans la teinte de l'etat
+/// lisible sur fond clair.
 pub fn icone_etat<'a, M: 'a>(niveau: Niveau, taille: f32) -> Element<'a, M> {
+    icone_etat_teinte(niveau, taille, theme::ton(niveau).texte)
+}
+
+pub fn icone_etat_teinte<'a, M: 'a>(niveau: Niveau, taille: f32, couleur: Color) -> Element<'a, M> {
     let grand = taille > 20.0;
     let (forme, epaisseur) = match niveau {
         Niveau::Up => (Icone::Ok, if grand { 2.4 } else { 3.0 }),
@@ -59,7 +63,7 @@ pub fn icone_etat<'a, M: 'a>(niveau: Niveau, taille: f32) -> Element<'a, M> {
         Niveau::Down => (Icone::Down, if grand { 2.4 } else { 3.0 }),
         Niveau::Inconnu | Niveau::Vide => (Icone::Attente, 3.5),
     };
-    icone(forme, taille, epaisseur, theme::couleur(niveau))
+    icone(forme, taille, epaisseur, couleur)
 }
 
 struct Dessin {
@@ -234,14 +238,6 @@ fn tracer(icone: Icone, t: &mut Trace) {
             t.arc((20.0, 14.5), (9.5, 4.0), 8.0, false, true);
             t.arc((9.5, 4.0), (20.0, 14.5), 8.0, true, false);
         }
-        Icone::Pouls => t.ligne(&[
-            (3.0, 12.0),
-            (7.0, 12.0),
-            (9.5, 6.0),
-            (14.5, 18.0),
-            (17.0, 12.0),
-            (21.0, 12.0),
-        ]),
         Icone::Gauche => t.ligne(&[(15.0, 6.0), (9.0, 12.0), (15.0, 18.0)]),
         Icone::Droite => t.ligne(&[(9.0, 6.0), (15.0, 12.0), (9.0, 18.0)]),
         Icone::Relancer => {

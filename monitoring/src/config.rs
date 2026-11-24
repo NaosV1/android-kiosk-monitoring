@@ -36,6 +36,9 @@ pub struct Config {
     pub seuil_lent: i64,
     /// Echecs d'affilee avant de declarer une node hors ligne (minimum 1).
     pub echecs_avant_panne: u32,
+    /// Controles lents d'affilee avant de declarer une node lente (minimum 1) : un pic isole,
+    /// souvent du a la tablette elle-meme, ne degrade pas le service.
+    pub lenteurs_avant_alerte: u32,
     pub veille_minutes: i64,
     pub ecoute: String,
     pub port: u16,
@@ -164,6 +167,8 @@ impl Config {
             delai: flottant(g, "delai", 10.0)?,
             seuil_lent: entier(g, "seuil_lent", 1000)?,
             echecs_avant_panne: entier(g, "echecs_avant_panne", 2)?.clamp(1, u32::MAX.into())
+                as u32,
+            lenteurs_avant_alerte: entier(g, "lenteurs_avant_alerte", 3)?.clamp(1, u32::MAX.into())
                 as u32,
             veille_minutes: entier(g, "veille_minutes", 5)?,
             ecoute: texte_option(g, "ecoute")?.unwrap_or_else(|| "127.0.0.1".into()),

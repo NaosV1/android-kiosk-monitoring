@@ -16,8 +16,8 @@ mod theme;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
-use iced::widget::stack;
-use iced::{Element, Size, Subscription, Task, event, mouse, touch, window};
+use iced::widget::{column, stack};
+use iced::{Color, Element, Size, Subscription, Task, event, mouse, touch, window};
 
 use crate::api::{DetailService, Etat, Incidents, StatutMaj};
 
@@ -37,8 +37,8 @@ pub fn lancer(url: String) -> iced::Result {
         .title("Monitoring")
         .subscription(Ecran::subscription)
         .scale_factor(|ecran: &Ecran| ecran.echelle)
-        .style(|_, _| iced::theme::Style {
-            background_color: theme::FOND,
+        .style(|ecran: &Ecran, _| iced::theme::Style {
+            background_color: ecran.fond(),
             text_color: theme::TEXTE,
         })
         .default_font(theme::INTER)
@@ -103,6 +103,10 @@ pub struct Ecran {
     /// Version dont l'installation a ete demandee.
     maj_envoyee: Option<String>,
     toast_maj_vu: bool,
+    /// Reception du dernier etat (secondes Unix).
+    recu: i64,
+    /// Bascule a chaque donnee recue du serveur : voir `fond`.
+    fond_bascule: bool,
 }
 
 impl Ecran {
@@ -122,6 +126,8 @@ impl Ecran {
             confirmer_maj: None,
             maj_envoyee: None,
             toast_maj_vu: false,
+            recu: 0,
+            fond_bascule: false,
         };
         let premier = ecran.rafraichir();
         (ecran, premier)
@@ -144,7 +150,29 @@ impl Ecran {
         ])
     }
 
+    /// Fond de la fenetre, alterne entre deux teintes indiscernables a chaque donnee recue.
+    ///
+    /// Le moteur de rendu logiciel d'iced 0.14 ne repeint que les zones qu'il juge modifiees, et ce
+    /// calcul rate des textes quand une liste change de forme (groupes reordonnes, lignes
+    /// ajoutees) : un bout de l'ancien texte restait affiche indefiniment
+    /// (https://github.com/iced-rs/iced/issues/3554). Un fond different l'oblige a tout repeindre,
+    /// une fois par reception (toutes les 5 s) ; toucher et faire defiler gardent le repeint
+    /// partiel.
+    fn fond(&self) -> Color {
+        let mut fond = theme::FOND;
+        if self.fond_bascule {
+            fond.b -= 1.0 / 255.0;
+        }
+        fond
+    }
+
     fn update(&mut self, message: Message) -> Task<Message> {
+        if matches!(
+            message,
+            Message::EtatRecu(Ok(_)) | Message::ServiceRecu(Ok(_)) | Message::IncidentsRecus(Ok(_))
+        ) {
+            self.fond_bascule = !self.fond_bascule;
+        }
         match message {
             Message::Tic => {
                 self.peut_etre_en_veille();
@@ -212,6 +240,7 @@ impl Ecran {
 
     fn etat_recu(&mut self, etat: Etat) -> Task<Message> {
         self.erreur = false;
+        self.recu = format::maintenant();
         let a_signaler = logique::incidents_a_signaler(&etat);
         if let Some(connus) = &self.incidents_connus
             && a_signaler.iter().any(|id| !connus.contains(id))
@@ -314,6 +343,11 @@ impl Ecran {
         apres(DUREE_TOAST, Message::FinToast(id))
     }
 
+    /// Le serveur ne repond plus (sauf pendant une installation, ou c'est attendu).
+    fn hors_ligne(&self) -> bool {
+        self.erreur && self.maj_envoyee.is_none()
+    }
+
     fn installation_en_cours(&self) -> bool {
         self.maj_envoyee.is_some()
             || self.etat.as_ref().is_some_and(|e| {
@@ -347,8 +381,18 @@ impl Ecran {
             service: self.service.as_ref().map(|(d, _)| d),
             incidents: self.incidents.as_ref().map(|(i, _)| i),
             filtre: self.filtre,
+            injoignable_depuis: self.hors_ligne().then_some(self.recu),
         };
-        let mut couches = vec![pages::page(&self.page, &contexte)];
+        let mut page = pages::page(&self.page, &contexte);
+        if self.hors_ligne() {
+            // au-dessus de la page plutot que par-dessus : le titre et l'horloge restent lisibles
+            page = column![
+                commun::hors_ligne(self.recu, RAFRAICHISSEMENT.as_secs()),
+                page
+            ]
+            .into();
+        }
+        let mut couches = vec![page];
         if self.installation_en_cours() {
             let version = self
                 .maj_envoyee
@@ -357,9 +401,6 @@ impl Ecran {
             couches.push(pages::maj::installation(version.unwrap_or_default()));
         } else if let Some(version) = &self.confirmer_maj {
             couches.push(pages::maj::confirmation(version, &etat.maj.actuelle));
-        }
-        if self.erreur && self.maj_envoyee.is_none() {
-            couches.push(commun::hors_ligne());
         }
         if let Some((_, texte)) = &self.toast {
             couches.push(commun::toast(texte));

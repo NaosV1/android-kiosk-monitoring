@@ -59,8 +59,37 @@ struct EtatNode {
     dernier: Option<i64>,
     /// Echecs d'affilee.
     echecs: u32,
+    /// Controles reussis mais lents d'affilee.
+    lenteurs: u32,
     prochain: Instant,
     en_cours: bool,
+}
+
+impl EtatNode {
+    /// Compte le resultat d'un controle et rend l'etat qui en decoule : une node ne passe hors
+    /// ligne (ou lente) qu'apres plusieurs echecs (ou lenteurs) d'affilee.
+    fn etat_apres(&mut self, resultat: &Resultat, conf: &Config) -> Niveau {
+        if !resultat.ok {
+            self.echecs += 1;
+            self.lenteurs = 0;
+            return if self.echecs >= conf.echecs_avant_panne {
+                Niveau::Down
+            } else {
+                self.etat
+            };
+        }
+        self.echecs = 0;
+        if resultat.ms.unwrap_or(0.0) > conf.seuil_lent as f64 {
+            self.lenteurs += 1;
+        } else {
+            self.lenteurs = 0;
+        }
+        if self.lenteurs >= conf.lenteurs_avant_alerte {
+            Niveau::Lent
+        } else {
+            Niveau::Up
+        }
+    }
 }
 
 struct EtatTailscale {
@@ -110,6 +139,7 @@ impl Moniteur {
                     depuis: t0,
                     dernier: None,
                     echecs: 0,
+                    lenteurs: 0,
                     prochain: premier_controle + decalage,
                     en_cours: false,
                 });
@@ -235,22 +265,8 @@ impl Moniteur {
         let n = &mut etat.nodes[i];
         n.dernier = Some(t);
         n.ms = resultat.ms.map(|ms| (ms * 10.0).round() / 10.0);
+        let nouvel = n.etat_apres(&resultat, &self.conf);
         n.info = resultat.info;
-        let nouvel = if resultat.ok {
-            n.echecs = 0;
-            if resultat.ms.unwrap_or(0.0) > self.conf.seuil_lent as f64 {
-                Niveau::Lent
-            } else {
-                Niveau::Up
-            }
-        } else {
-            n.echecs += 1;
-            if n.echecs >= self.conf.echecs_avant_panne {
-                Niveau::Down
-            } else {
-                n.etat
-            }
-        };
         if nouvel != n.etat {
             n.etat = nouvel;
             n.depuis = t;
@@ -468,9 +484,51 @@ mod tests {
             depuis: 0,
             dernier: None,
             echecs: 0,
+            lenteurs: 0,
             prochain: Instant::now(),
             en_cours: false,
         }
+    }
+
+    #[test]
+    fn un_pic_de_latence_isole_ne_rend_pas_la_node_lente() {
+        // valeurs par defaut : seuil 1000 ms, 3 lenteurs et 2 echecs d'affilee
+        let conf = Config::depuis_texte("").unwrap();
+        let mesure = |ms: f64| Resultat {
+            ok: true,
+            ms: Some(ms),
+            info: String::new(),
+        };
+        let echec = || Resultat {
+            ok: false,
+            ms: None,
+            info: String::new(),
+        };
+        let mut n = node(Niveau::Up, None, "");
+        let mut suite = |resultat: &Resultat| {
+            n.etat = n.etat_apres(resultat, &conf);
+            n.etat
+        };
+        // pics isoles, entrecoupes de mesures normales ou d'un echec
+        for r in [
+            mesure(2500.0),
+            mesure(1800.0),
+            mesure(40.0),
+            mesure(3000.0),
+            echec(),
+            mesure(1500.0),
+        ] {
+            assert_eq!(suite(&r), Niveau::Up);
+        }
+        // lenteur qui dure : alerte au troisieme controle lent d'affilee
+        assert_eq!(suite(&mesure(1200.0)), Niveau::Up);
+        assert_eq!(suite(&mesure(1300.0)), Niveau::Lent);
+        assert_eq!(suite(&mesure(1100.0)), Niveau::Lent);
+        // un seul controle rapide suffit a revenir
+        assert_eq!(suite(&mesure(30.0)), Niveau::Up);
+        // pannes : inchangees (2 echecs d'affilee)
+        assert_eq!(suite(&echec()), Niveau::Up);
+        assert_eq!(suite(&echec()), Niveau::Down);
     }
 
     #[test]

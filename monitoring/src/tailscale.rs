@@ -96,7 +96,8 @@ fn lire_appareils(donnees: &Value, t: i64) -> (Vec<Appareil>, Option<String>) {
                     .and_then(Value::as_f64)
                     .unwrap_or(0.0)
                     .round_ties_even();
-                derp = Some(format!("{region} · {ms} ms"));
+                // code de region en capitales : « par » se lirait comme la preposition
+                derp = Some(format!("{} · {ms} ms", region.to_uppercase()));
             }
         }
         let routes = liste("enabledRoutes");
@@ -156,7 +157,7 @@ mod tests {
         let a = &appareils[0];
         assert_eq!(
             (a.nom.as_str(), a.ip.as_str(), a.derp.as_deref()),
-            ("tablette", "100.64.0.5", Some("par · 12 ms"))
+            ("tablette", "100.64.0.5", Some("PAR · 12 ms"))
         );
         assert!(a.en_ligne && a.sortie && a.maj_dispo);
         assert_eq!(a.sous_reseaux, ["10.0.0.0/24"]);

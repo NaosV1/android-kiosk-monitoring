@@ -5,7 +5,7 @@ use iced::widget::canvas::{
     self, Frame, Geometry, LineCap, LineDash, LineJoin, Path, Stroke, Text,
 };
 use iced::widget::text::Alignment;
-use iced::{Color, Element, Length, Point, Rectangle, Renderer, Theme, color, mouse};
+use iced::{Color, Element, Length, Point, Rectangle, Renderer, Theme, mouse};
 
 use crate::api::Niveau;
 
@@ -19,7 +19,7 @@ pub fn sparkline<'a, M: 'a>(valeurs: &[Option<f64>], etat: Niveau) -> Element<'a
         etat,
     })
     .width(Length::Fill)
-    .height(18)
+    .height(22)
     .into()
 }
 
@@ -76,26 +76,16 @@ impl<M> canvas::Program<M> for Sparkline {
         // reperes d'origine : 200 x 34, etire a la taille du widget
         let (kx, ky) = (limites.width / 200.0, limites.height / 34.0);
         let definies: Vec<f64> = self.valeurs.iter().flatten().copied().collect();
-        if definies.is_empty() {
-            let y = 31.0 * ky;
-            cadre.stroke(
-                &Path::line(Point::new(0.0, y), Point::new(limites.width, y)),
-                Stroke {
-                    line_dash: LineDash {
-                        segments: &[4.0, 4.0],
-                        offset: 0,
-                    },
-                    ..trait_plein(theme::BORD2, 2.0)
-                },
-            );
+        // moins de deux mesures : pas de courbe plutot qu'un trait qui imiterait une donnee
+        if definies.len() < 2 {
             return vec![cadre.into_geometry()];
         }
         let max = definies.iter().fold(0.0_f64, |a, &b| a.max(b)) * 1.25;
         let max = if max > 0.0 { max } else { 1.0 };
         let n = self.valeurs.len().saturating_sub(1).max(1) as f32;
         let couleur = match self.etat {
-            Niveau::Up => color!(0x4C8C6E),
-            Niveau::Inconnu | Niveau::Vide => theme::GRIS_NODE,
+            // calme quand tout va bien : la couleur est reservee aux problemes
+            Niveau::Up | Niveau::Lent | Niveau::Inconnu | Niveau::Vide => theme::TERTIAIRE,
             etat => theme::couleur(etat),
         };
         let point = |i: usize, v: f64| {
@@ -126,13 +116,22 @@ pub struct Serie {
     pub hors_ligne: bool,
 }
 
-/// Graphe des temps de reponse sur 24 h, avec la ligne du seuil « lent ».
+/// Graphe des temps de reponse sur 24 h, avec la ligne du seuil « lent » et l'axe du temps.
 pub fn graphe<'a, M: 'a>(series: Vec<Serie>, seuil_lent: f64) -> Element<'a, M> {
     iced::widget::canvas(Graphe { series, seuil_lent })
         .width(Length::Fill)
-        .height(176)
+        .height(200)
         .into()
 }
+
+/// Reperes de l'axe du temps : position dans les 24 h (0 = il y a 24 h, 1 = maintenant).
+const REPERES_TEMPS: [(f32, &str); 5] = [
+    (0.0, "il y a 24 h"),
+    (0.25, "18 h"),
+    (0.5, "12 h"),
+    (0.75, "6 h"),
+    (1.0, "maintenant"),
+];
 
 struct Graphe {
     series: Vec<Serie>,
@@ -160,9 +159,12 @@ impl<M> canvas::Program<M> for Graphe {
         _: mouse::Cursor,
     ) -> Vec<Geometry> {
         let mut cadre = Frame::new(renderer, limites.size());
-        // reperes d'origine : 640 x 186, mis a l'echelle sans deformation
-        let k = (limites.width / 640.0).min(limites.height / 186.0);
-        let p = |x: f32, y: f32| Point::new(x * k, y * k);
+        // reperes d'origine : 640 x 200, mis a l'echelle sans deformation
+        // le trace occupe toute la carte (echelle propre a chaque axe) ; textes et reperes
+        // gardent la plus petite des deux, pour ne pas se deformer
+        let (kx, ky) = (limites.width / 640.0, limites.height / 200.0);
+        let k = kx.min(ky);
+        let p = |x: f32, y: f32| Point::new(x * kx, y * ky);
         let valeurs: Vec<f64> = self
             .series
             .iter()
@@ -185,7 +187,7 @@ impl<M> canvas::Program<M> for Graphe {
             let yy = y(niveau);
             cadre.stroke(
                 &Path::line(p(x0, yy), p(636.0, yy)),
-                trait_plein(theme::BORD, 1.0),
+                trait_plein(theme::SEPARATEUR, 1.0),
             );
             cadre.fill_text(Text {
                 content: if niveau == 0.0 {
@@ -194,7 +196,7 @@ impl<M> canvas::Program<M> for Graphe {
                     graduation(niveau)
                 },
                 position: p(52.0, yy),
-                color: theme::DISCRET,
+                color: theme::SECONDAIRE,
                 size: (12.0 * k).into(),
                 font: INTER,
                 align_x: Alignment::Right,
@@ -212,16 +214,24 @@ impl<M> canvas::Program<M> for Graphe {
                         offset: 0,
                     },
                     line_cap: LineCap::Butt,
-                    ..trait_plein(theme::WARN_BORD, 1.5)
+                    ..trait_plein(theme::ton(Niveau::Warn).plein, 1.5)
                 },
             );
+        }
+        for (part, libelle) in REPERES_TEMPS {
+            let alignement = match part {
+                0.0 => Alignment::Left,
+                1.0 => Alignment::Right,
+                _ => Alignment::Center,
+            };
             cadre.fill_text(Text {
-                content: format!("seuil « lent » {}", graduation(self.seuil_lent)),
-                position: p(x0 + 4.0, ys - 3.0),
-                color: theme::WARN,
+                content: libelle.into(),
+                position: p(x0 + part * (x1 - x0), 192.0),
+                color: theme::SECONDAIRE,
                 size: (12.0 * k).into(),
                 font: INTER,
-                align_y: Vertical::Bottom,
+                align_x: alignement,
+                align_y: Vertical::Center,
                 ..Text::default()
             });
         }
@@ -236,15 +246,15 @@ impl<M> canvas::Program<M> for Graphe {
             if let (true, Some(i)) = (serie.hors_ligne, derniere) {
                 let centre = p(x(i), y(serie.valeurs[i].unwrap_or_default()));
                 let cercle = Path::circle(centre, 7.0 * k);
-                cadre.fill(&cercle, theme::DOWN_CARTE);
-                cadre.stroke(&cercle, trait_plein(theme::DOWN, 2.0));
+                cadre.fill(&cercle, theme::SURFACE);
+                cadre.stroke(&cercle, trait_plein(theme::ton(Niveau::Down).plein, 2.0));
                 let d = 3.5 * k;
                 for (a, b) in [((-d, -d), (d, d)), ((d, -d), (-d, d))] {
                     let ligne = Path::line(
                         Point::new(centre.x + a.0, centre.y + a.1),
                         Point::new(centre.x + b.0, centre.y + b.1),
                     );
-                    cadre.stroke(&ligne, trait_plein(theme::DOWN, 2.0));
+                    cadre.stroke(&ligne, trait_plein(theme::ton(Niveau::Down).plein, 2.0));
                 }
             }
         }

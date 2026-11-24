@@ -33,7 +33,7 @@ pub fn agent(delai: Duration, verifier_certificat: bool, adresse: Option<Adresse
         .tls_config(tls)
         .build();
     match adresse {
-        None => Agent::new_with_config(config),
+        None => Agent::with_parts(config, DefaultConnector::default(), ResolveurSysteme),
         Some(a) => Agent::with_parts(config, DefaultConnector::default(), ResolveurImpose(a)),
     }
 }
@@ -133,6 +133,26 @@ fn racines_systeme() -> RootCerts {
     RootCerts::Specific(Arc::clone(certificats))
 }
 
+/// Resolution par le systeme, ou un nom introuvable reste une erreur de nom : le resolveur
+/// d'ureq le rend comme une erreur d'entree-sortie generique (« failed to lookup address
+/// information »), qui s'afficherait telle quelle au lieu de « Nom introuvable (DNS) ».
+#[derive(Debug)]
+struct ResolveurSysteme;
+
+impl Resolver for ResolveurSysteme {
+    fn resolve(
+        &self,
+        uri: &Uri,
+        config: &ureq::config::Config,
+        timeout: NextTimeout,
+    ) -> Result<ResolvedSocketAddrs, ureq::Error> {
+        match DefaultResolver::default().resolve(uri, config, timeout) {
+            Err(ureq::Error::Io(_)) => Err(ureq::Error::HostNotFound),
+            autre => autre,
+        }
+    }
+}
+
 #[derive(Debug)]
 struct ResolveurImpose(AdresseImposee);
 
@@ -149,7 +169,7 @@ impl Resolver for ResolveurImpose {
             .trim_matches(|c| c == '[' || c == ']');
         if !hote.eq_ignore_ascii_case(&self.0.hote) {
             // redirection vers un autre nom : resolution normale
-            return DefaultResolver::default().resolve(uri, config, timeout);
+            return ResolveurSysteme.resolve(uri, config, timeout);
         }
         let port = uri
             .port_u16()
@@ -183,6 +203,16 @@ mod tests {
         assert_eq!(encoder_segment("base-de-donnees"), "base-de-donnees");
         assert_eq!(encoder_segment("moi@exemple.fr"), "moi%40exemple.fr");
         assert_eq!(encoder_segment("a b/é"), "a%20b%2F%C3%A9");
+    }
+
+    #[test]
+    fn un_nom_introuvable_est_signale_comme_tel() {
+        // domaine reserve (RFC 6761) : jamais resolu, avec ou sans reseau
+        let erreur = agent(Duration::from_secs(5), true, None)
+            .get("https://nexiste-pas.invalid/")
+            .call()
+            .unwrap_err();
+        assert_eq!(raison(&erreur, 5.0), "Nom introuvable (DNS)");
     }
 
     #[test]

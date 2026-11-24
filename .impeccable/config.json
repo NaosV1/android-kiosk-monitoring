@@ -1,0 +1,45 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-24T19:52:42.372Z",
+        "reason": "assistant: esquisse de decision non retenue, tour clos, fixture jamais rendue a nouveau"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-tableau.html"
+        ],
+        "createdAt": "2026-11-24T19:52:42.402Z",
+        "reason": "assistant: esquisse de decision non retenue, tour clos, fixture jamais rendue a nouveau"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-24T19:52:42.430Z",
+        "reason": "assistant: carte canon choisie par l'utilisateur sur la page de decision; Inter est la police installee sur la tablette (contrainte PRODUCT.md)"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html",
+          ".impeccable/mocks/decision/challenger-tableau.html"
+        ],
+        "createdAt": "2026-11-24T20:44:00.003Z",
+        "reason": "assistant: esquisses de decision non retenues (autre direction, police Barlow voulue), ignorees par git, jamais livrees"
+      }
+    ]
+  }
+}

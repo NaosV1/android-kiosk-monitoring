@@ -21,6 +21,8 @@ pub struct Contexte<'a> {
     pub service: Option<&'a DetailService>,
     pub incidents: Option<&'a Incidents>,
     pub filtre: Filtre,
+    /// Heure du dernier etat recu, quand le serveur ne repond plus : l'etat affiche est perime.
+    pub injoignable_depuis: Option<i64>,
 }
 
 pub fn page<'a>(page: &Page, c: &Contexte<'a>) -> Vue<'a> {

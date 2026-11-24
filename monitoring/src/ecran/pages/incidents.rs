@@ -7,12 +7,12 @@ use iced::{Alignment, Length, Padding, Theme};
 use crate::api::{Incident, Incidents, Niveau};
 
 use super::Contexte;
-use super::service::{marque, separateur};
 use crate::ecran::commun::{
-    Vue, au_centre, badge, bouton_plein, defilant, ecran, entete, titre_section, titres, vide,
+    self, CIBLE, Vue, au_centre, carte, defilant, ecran, entete, horloge, point, separateur,
+    titre_section, titres, vide,
 };
 use crate::ecran::format::{self, duree, jour_long, majuscule_initiale, pct};
-use crate::ecran::icones::{Icone, icone};
+use crate::ecran::icones::{Icone, icone, icone_etat};
 use crate::ecran::logique::Page;
 use crate::ecran::theme::{self, DEMI_GRAS, GRAS, MOYEN, t};
 use crate::ecran::{Action, Filtre, Message};
@@ -23,21 +23,22 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
         d.incidents.iter().filter(|i| i.fin.is_some()).collect()
     });
     let sous = format!(
-        "30 derniers jours · {} en cours · {} résolus",
+        "{} en cours, {} résolus sur les 30 derniers jours",
         ouverts.len(),
         c.incidents
             .map_or("…".into(), |_| resolus.len().to_string())
     );
     let tete = entete(vec![
-        titres("Incidents", None, t(sous, 14).color(theme::DISCRET).into()),
+        titres("Incidents", None, commun::ligne_secondaire(sous, 14.0)),
         segments(c.filtre),
+        horloge(),
     ]);
 
-    let mut gauche = column![].spacing(12);
+    let mut gauche = column![].spacing(10);
     if c.filtre != Filtre::Resolus {
         gauche = gauche.push(titre_section("En cours", None));
         if ouverts.is_empty() {
-            gauche = gauche.push(vide(t("Aucun incident en cours.", 16)));
+            gauche = gauche.push(vide(t("Aucun incident en cours.", 15)));
         }
         for i in ouverts {
             gauche = gauche.push(carte_ouvert(i, c.maintenant));
@@ -45,25 +46,21 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
     }
     if c.filtre != Filtre::EnCours {
         gauche =
-            gauche.push(container(titre_section("Résolus", None)).padding(Padding::ZERO.top(8)));
+            gauche.push(container(titre_section("Résolus", None)).padding(Padding::ZERO.top(12)));
         gauche = gauche.push(match c.incidents {
-            None => t("Chargement…", 16).color(theme::DISCRET).into(),
+            None => t("Chargement…", 15).color(theme::SECONDAIRE).into(),
             Some(_) if resolus.is_empty() => {
-                vide(t("Aucun incident résolu sur les 30 derniers jours.", 16))
+                vide(t("Aucun incident résolu sur les 30 derniers jours.", 15))
             }
             Some(_) => liste_resolus(&resolus, c.maintenant),
         });
     }
     let droite: Vue<'a> = match c.incidents {
-        None => container(t("Chargement…", 16).color(theme::DISCRET))
-            .padding([16, 20])
-            .width(Length::Fill)
-            .style(theme::carte)
-            .into(),
-        Some(d) => bilan(d),
+        None => carte(t("Chargement…", 15).color(theme::SECONDAIRE)).into(),
+        Some(d) => bilan(d, ouverts),
     };
     let corps = row![
-        defilant(gauche)
+        defilant(gauche.padding(Padding::ZERO.bottom(8)))
             .height(Length::Fill)
             .width(Length::FillPortion(8)),
         container(droite)
@@ -72,23 +69,36 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
     ]
     .spacing(20)
     .height(Length::Fill);
-    ecran(&Page::Incidents, c.etat, column![tete, corps].spacing(18))
+    ecran(
+        &Page::Incidents,
+        c.etat,
+        c.injoignable_depuis.is_some(),
+        column![tete, corps].spacing(20),
+    )
 }
 
+/// Controle segmente : Tous, En cours, Resolus.
 fn segments<'a>(actif: Filtre) -> Vue<'a> {
     let segment = |filtre: Filtre, libelle: &'a str| -> Vue<'a> {
         let choisi = filtre == actif;
-        button(au_centre(t(libelle, 16).font(DEMI_GRAS)))
-            .height(48)
-            .padding([0, 22])
-            .style(theme::touchable(
-                choisi.then_some(theme::ACTIF),
-                None,
-                14.0,
-                if choisi { theme::TEXTE } else { theme::DISCRET },
-            ))
-            .on_press(Message::Filtrer(filtre))
-            .into()
+        button(
+            container(t(libelle, 15).font(if choisi { DEMI_GRAS } else { MOYEN }))
+                .center(Length::Fill),
+        )
+        .width(112)
+        .height(CIBLE)
+        .padding(0)
+        .style(theme::touchable(
+            choisi.then_some(theme::SURFACE),
+            10.0,
+            if choisi {
+                theme::TEXTE
+            } else {
+                theme::SECONDAIRE
+            },
+        ))
+        .on_press(Message::Filtrer(filtre))
+        .into()
     };
     container(
         row![
@@ -96,75 +106,86 @@ fn segments<'a>(actif: Filtre) -> Vue<'a> {
             segment(Filtre::EnCours, "En cours"),
             segment(Filtre::Resolus, "Résolus")
         ]
-        .spacing(4)
-        .align_y(Alignment::Center),
+        .spacing(2),
     )
-    .padding(4)
-    .style(|_: &Theme| theme::boite(theme::SURFACE, Some(theme::BORD2), 18.0))
+    .padding(3)
+    .style(|_: &Theme| theme::boite(theme::PISTE, 13.0))
     .into()
 }
 
+fn bouton_carte<'a>(contenu: Vue<'a>, couleur: iced::Color, message: Message) -> Vue<'a> {
+    button(au_centre(contenu))
+        .height(CIBLE)
+        .padding([0, 16])
+        .style(theme::touchable(Some(theme::SURFACE), 12.0, couleur))
+        .on_press(message)
+        .into()
+}
+
 fn carte_ouvert<'a>(i: &Incident, maintenant: i64) -> Vue<'a> {
+    let ton = theme::ton(i.niveau);
     let hs = i.niveau == Niveau::Down;
-    let (fond, bord, clair) = if hs {
-        (theme::DOWN_CARTE, theme::DOWN_BORD, theme::DOWN_CLAIR)
-    } else {
-        (theme::WARN_CARTE, theme::WARN_BORD, theme::WARN_CLAIR)
-    };
     let acquitte = i.acquitte != 0;
     let textes = column![
         t(
-            format!("{} · {}", i.nom, if hs { "hors ligne" } else { "dégradé" }),
-            20
+            format!("{} {}", i.nom, if hs { "hors ligne" } else { "dégradé" }),
+            18
         )
-        .font(GRAS),
+        .font(GRAS)
+        .color(ton.texte),
         t(
             format!(
-                "Depuis {} ({})",
+                "Depuis {} ({}){}",
                 format::heure(&format::local(i.debut)),
-                duree((maintenant - i.debut) as f64)
+                duree((maintenant - i.debut) as f64),
+                if acquitte { ", acquitté" } else { "" }
             ),
-            15
-        )
-        .color(clair),
-        t(
-            format!("{}{}", i.message, if acquitte { " · acquitté" } else { "" }),
             14
         )
-        .color(theme::TEXTE2),
+        .color(ton.texte_fond),
+        t(i.message.clone(), 14).color(theme::TEXTE),
     ]
-    .spacing(4)
+    .spacing(3)
     .width(Length::Fill);
-    let haut = row![badge(i.niveau, 48.0, 26.0), textes].spacing(16);
-    let mut actions = row![bouton_plein(
-        theme::couleur(i.niveau),
-        "Voir",
-        Icone::Droite,
-        false,
-        52.0,
-        Some(Message::Aller(Page::de_incident(i)))
+    let rond = container(icone_etat(i.niveau, 22.0))
+        .center(40)
+        .style(|_: &Theme| theme::boite(theme::SURFACE, 20.0));
+    let mut actions = row![bouton_carte(
+        row![
+            t("Voir", 15).font(DEMI_GRAS),
+            icone(Icone::Droite, 18.0, 2.2, theme::TEXTE)
+        ]
+        .spacing(4)
+        .align_y(Alignment::Center)
+        .into(),
+        theme::TEXTE,
+        Message::Aller(Page::de_incident(i)),
     )]
-    .spacing(12);
+    .spacing(10);
     if !acquitte {
-        let acquitter = button(au_centre(
+        actions = actions.push(bouton_carte(
             row![
-                icone(Icone::Ok, 20.0, 2.2, clair),
-                t("Acquitter", 16).font(DEMI_GRAS)
+                icone(Icone::Ok, 18.0, 2.4, ton.texte),
+                t("Acquitter", 15).font(DEMI_GRAS)
             ]
-            .spacing(10)
-            .align_y(Alignment::Center),
-        ))
-        .height(52)
-        .padding([0, 20])
-        .style(theme::touchable(None, Some(bord), 14.0, clair))
-        .on_press(Message::Agir(Action::Acquittement, i.id.to_string()));
-        actions = actions.push(acquitter);
+            .spacing(8)
+            .align_y(Alignment::Center)
+            .into(),
+            ton.texte,
+            Message::Agir(Action::Acquittement, i.id.to_string()),
+        ));
     }
-    container(column![haut, container(actions).padding(Padding::ZERO.left(64))].spacing(14))
-        .padding([18, 20])
-        .width(Length::Fill)
-        .style(move |_: &Theme| theme::boite(fond, Some(bord), 18.0))
-        .into()
+    container(
+        column![
+            row![rond, textes].spacing(14),
+            container(actions).padding(Padding::ZERO.left(54)),
+        ]
+        .spacing(12),
+    )
+    .padding([16, 18])
+    .width(Length::Fill)
+    .style(move |_: &Theme| theme::boite(ton.fond, 16.0))
+    .into()
 }
 
 fn liste_resolus<'a>(resolus: &[&Incident], maintenant: i64) -> Vue<'a> {
@@ -177,7 +198,7 @@ fn liste_resolus<'a>(resolus: &[&Incident], maintenant: i64) -> Vue<'a> {
         let libelle = if debut.date_naive() == aujourd_hui.date_naive() {
             "aujourd'hui".to_string()
         } else if debut.date_naive() == hier.date_naive() {
-            format!("hier · {}", jour_long(&debut))
+            format!("hier, {}", jour_long(&debut))
         } else {
             jour_long(&debut)
         };
@@ -185,61 +206,55 @@ fn liste_resolus<'a>(resolus: &[&Incident], maintenant: i64) -> Vue<'a> {
             liste = liste.push(
                 container(
                     t(majuscule_initiale(&libelle), 13)
-                        .font(MOYEN)
-                        .color(theme::DISCRET),
+                        .font(DEMI_GRAS)
+                        .color(theme::SECONDAIRE),
                 )
-                .padding(Padding {
-                    top: 12.0,
-                    bottom: 4.0,
-                    left: 0.0,
-                    right: 0.0,
-                }),
+                .padding(Padding::ZERO.top(if k == 0 { 4.0 } else { 14.0 }).bottom(2)),
             );
             jour_courant = libelle;
-        } else if k > 0 {
+        } else {
             liste = liste.push(separateur());
         }
         let fin = i.fin.unwrap_or(maintenant);
         let ligne = row![
-            marque(i.niveau),
+            point(i.niveau, 10.0),
             container(
                 t(i.nom.clone(), 15)
                     .font(DEMI_GRAS)
                     .wrapping(Wrapping::None)
             )
             .clip(true)
-            .width(128),
+            .width(140),
             container(
                 t(i.message.clone(), 15)
-                    .color(theme::TEXTE2)
+                    .color(theme::SECONDAIRE)
                     .wrapping(Wrapping::None)
             )
             .clip(true)
             .width(Length::Fill),
-            t(
+            commun::mono(
                 format!(
                     "{} → {}",
                     format::heure(&debut),
                     format::heure(&format::local(fin))
                 ),
-                13
-            )
-            .font(theme::MONO)
-            .color(theme::DISCRET),
+                13.0,
+                theme::SECONDAIRE
+            ),
             container(t(duree((fin - i.debut) as f64), 15).font(DEMI_GRAS))
-                .width(64)
+                .width(70)
                 .align_x(Alignment::End),
         ]
-        .spacing(14)
-        .height(50)
+        .spacing(12)
+        .height(48)
         .align_y(Alignment::Center);
         liste = liste.push(ligne);
     }
     container(liste)
         .padding(Padding {
-            top: 6.0,
+            top: 8.0,
             right: 20.0,
-            bottom: 10.0,
+            bottom: 8.0,
             left: 20.0,
         })
         .width(Length::Fill)
@@ -247,30 +262,31 @@ fn liste_resolus<'a>(resolus: &[&Incident], maintenant: i64) -> Vue<'a> {
         .into()
 }
 
-fn bilan<'a>(d: &Incidents) -> Vue<'a> {
+/// Disponibilite moyenne, nombre et duree des incidents, puis les services les plus perturbes.
+fn bilan<'a>(d: &Incidents, ouverts: &[Incident]) -> Vue<'a> {
     let b = &d.bilan;
-    let mini = |valeur: String, libelle: &'a str| -> Vue<'a> {
-        container(
-            column![
-                t(valeur, 24).font(GRAS),
-                t(libelle, 13).color(theme::DISCRET)
-            ]
-            .spacing(2),
-        )
-        .padding([12, 14])
+    let chiffre = |valeur: String, libelle: &'a str| -> Vue<'a> {
+        column![
+            t(valeur, 22).font(GRAS),
+            t(libelle, 13).color(theme::SECONDAIRE)
+        ]
+        .spacing(2)
         .width(Length::Fill)
-        .style(|_: &Theme| theme::boite(theme::CREUX, None, 12.0))
         .into()
     };
-    let resume = container(
+    let filet_vertical = container(Space::new().width(1).height(40))
+        .style(|_: &Theme| theme::boite(theme::SEPARATEUR, 0.0));
+    let resume = carte(
         column![
-            t("Bilan · 30 jours", 17).font(DEMI_GRAS),
+            t("Bilan des 30 derniers jours", 17).font(DEMI_GRAS),
             column![
-                t(pct(b.dispo), 44).font(GRAS),
-                t("disponibilité moyenne des services", 14).color(theme::DISCRET)
-            ],
+                t(pct(b.dispo), 40).font(GRAS),
+                t("disponibilité moyenne des services", 14).color(theme::SECONDAIRE)
+            ]
+            .spacing(2),
+            separateur(),
             row![
-                mini(
+                chiffre(
                     b.nombre.to_string(),
                     if b.nombre > 1 {
                         "incidents"
@@ -278,22 +294,22 @@ fn bilan<'a>(d: &Incidents) -> Vue<'a> {
                         "incident"
                     }
                 ),
-                mini(
+                filet_vertical,
+                container(chiffre(
                     if b.duree > 0 {
                         duree(b.duree as f64)
                     } else {
                         "0".into()
                     },
                     "de perturbation"
-                ),
+                ))
+                .padding(iced::Padding::ZERO.left(16))
+                .width(Length::Fill),
             ]
-            .spacing(12),
+            .align_y(Alignment::Center),
         ]
         .spacing(14),
-    )
-    .padding([16, 20])
-    .width(Length::Fill)
-    .style(theme::carte);
+    );
 
     let max = b
         .par_service
@@ -304,16 +320,22 @@ fn bilan<'a>(d: &Incidents) -> Vue<'a> {
         .max(1);
     let mut par_service = column![t("Par service", 17).font(DEMI_GRAS)].spacing(14);
     if b.par_service.is_empty() {
-        par_service = par_service.push(t("Rien à signaler.", 15).color(theme::DISCRET));
+        par_service = par_service.push(t("Rien à signaler.", 15).color(theme::SECONDAIRE));
     }
     for x in &b.par_service {
-        let couleur = if x.en_cours {
-            theme::WARN
-        } else {
-            theme::DISCRET
+        // en cours : la teinte du niveau de l'incident ouvert ; resolu : neutre
+        let niveau_en_cours = x.en_cours.then(|| {
+            ouverts
+                .iter()
+                .find(|i| i.service == x.service)
+                .map_or(Niveau::Warn, |i| i.niveau)
+        });
+        let (couleur_texte, couleur_barre) = match niveau_en_cours {
+            Some(n) => (theme::ton(n).texte, theme::ton(n).plein),
+            None => (theme::SECONDAIRE, theme::TERTIAIRE),
         };
         let lib = row![
-            container(t(x.nom.clone(), 14).wrapping(Wrapping::None))
+            container(t(x.nom.clone(), 14).font(MOYEN).wrapping(Wrapping::None))
                 .clip(true)
                 .width(Length::Fill),
             t(
@@ -324,36 +346,24 @@ fn bilan<'a>(d: &Incidents) -> Vue<'a> {
                 ),
                 14
             )
-            .color(couleur),
+            .color(couleur_texte),
         ]
         .spacing(10);
         let part = ((x.duree as f64 / max as f64) * 1000.0)
             .round()
             .clamp(4.0, 1000.0) as u16;
-        let barre = if x.en_cours {
-            theme::WARN
-        } else {
-            iced::color!(0x4C86C6)
-        };
-        let piste = row![
+        let piste = container(row![
             container(Space::new())
                 .width(Length::FillPortion(part))
-                .height(10)
-                .style(move |_: &Theme| theme::boite(barre, None, 5.0)),
+                .height(8)
+                .style(move |_: &Theme| theme::boite(couleur_barre, 4.0)),
             Space::new().width(Length::FillPortion(1000 - part.min(999))),
-        ];
-        let piste = container(piste)
-            .width(Length::Fill)
-            .style(|_: &Theme| theme::boite(theme::CREUX, None, 5.0));
+        ])
+        .width(Length::Fill)
+        .style(|_: &Theme| theme::boite(theme::PISTE, 4.0));
         par_service = par_service.push(column![lib, piste].spacing(6));
     }
-    let par_service = container(defilant(par_service).height(Length::Fill))
-        .padding([16, 20])
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .style(theme::carte);
-    column![resume, par_service]
-        .spacing(12)
+    defilant(column![resume, carte(par_service)].spacing(14))
         .height(Length::Fill)
         .into()
 }

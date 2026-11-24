@@ -128,8 +128,8 @@ pub struct Groupe<'a> {
     pub services: Vec<&'a Service>,
 }
 
-/// Services groupes par tag dans l'ordre de la config (sans tag a la fin),
-/// problemes en tete de chaque groupe.
+/// Services groupes par tag, problemes en tete : les groupes qui contiennent une panne
+/// d'abord, puis l'ordre de la config (sans tag a la fin) ; problemes en tete de chaque groupe.
 pub fn groupes(services: &[Service]) -> Vec<Groupe<'_>> {
     let mut groupes: Vec<Groupe> = Vec::new();
     for s in services {
@@ -141,24 +141,17 @@ pub fn groupes(services: &[Service]) -> Vec<Groupe<'_>> {
             }),
         }
     }
-    groupes.sort_by_key(|g| g.tag.is_empty());
     for g in &mut groupes {
         g.services.sort_by_key(|s| rang(s.etat));
     }
+    // tri stable : a gravite egale, l'ordre de la config est conserve
+    groupes.sort_by_key(|g| {
+        (
+            g.services.first().map_or(u8::MAX, |s| rang(s.etat)),
+            g.tag.is_empty(),
+        )
+    });
     groupes
-}
-
-/// Niveau resume d'un groupe de services.
-pub fn niveau_groupe(services: &[&Service]) -> Niveau {
-    if services.iter().any(|s| s.etat == Niveau::Down) {
-        Niveau::Down
-    } else if services.iter().any(|s| s.etat == Niveau::Warn) {
-        Niveau::Warn
-    } else if services.iter().all(|s| s.etat == Niveau::Inconnu) {
-        Niveau::Inconnu
-    } else {
-        Niveau::Up
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -319,6 +312,9 @@ mod tests {
             service("b", "", Niveau::Up, &[Niveau::Up]),
             service("c", "Web", Niveau::Up, &[Niveau::Up]),
             service("d", "Réseau", Niveau::Down, &[Niveau::Down]),
+            service("e", "Bureau", Niveau::Up, &[Niveau::Up]),
+            service("f", "Bureau", Niveau::Warn, &[Niveau::Up, Niveau::Down]),
+            service("g", "", Niveau::Down, &[Niveau::Down]),
         ];
         let g = groupes(&services);
         let resume: Vec<(&str, Vec<&str>)> = g
@@ -329,12 +325,11 @@ mod tests {
             resume,
             [
                 ("Réseau", vec!["d", "a"]),
+                ("", vec!["g", "b"]),
+                ("Bureau", vec!["f", "e"]),
                 ("Web", vec!["c"]),
-                ("", vec!["b"])
             ]
         );
-        assert_eq!(niveau_groupe(&g[0].services), Niveau::Down);
-        assert_eq!(niveau_groupe(&g[1].services), Niveau::Up);
     }
 
     #[test]

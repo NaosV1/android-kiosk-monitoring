@@ -1,23 +1,18 @@
-//! Ecran de veille : grande horloge et etat general, lisibles de loin.
+//! Ecran de veille, facon horloge de chevet : fond noir, grande horloge et etat general.
 //! Toucher l'ecran ouvre le tableau de bord.
 
 use iced::widget::{Space, button, column, container, row, stack};
-use iced::{Alignment, Color, Length, Padding, Theme, color};
+use iced::{Alignment, Color, Length, Padding, Theme};
 
 use crate::api::Niveau;
 
 use super::Contexte;
 use crate::ecran::Message;
-use crate::ecran::commun::Vue;
+use crate::ecran::commun::{Vue, point_teinte};
 use crate::ecran::format::{self, duree, jour_long, majuscule_initiale, pluriel};
-use crate::ecran::icones::icone_etat;
+use crate::ecran::icones::icone_etat_teinte;
 use crate::ecran::logique::{Page, pire, problemes};
-use crate::ecran::theme::{self, DEMI_GRAS, LEGER, t};
-
-const FOND: Color = color!(0x06080B);
-const CLAIR: Color = color!(0xDCE3EC);
-const GRIS: Color = color!(0x7D8A9C);
-const SOMBRE: Color = color!(0x5E6B7D);
+use crate::ecran::theme::{self, DEMI_GRAS, LEGER, nuit, t};
 
 pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
     let e = c.etat;
@@ -27,7 +22,7 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
             p.niveau,
             p.court.clone(),
             format!(
-                "{} · depuis {}",
+                "{}, depuis {}",
                 p.detail,
                 duree((c.maintenant - p.depuis) as f64)
             ),
@@ -35,7 +30,7 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
         [] => {
             let nodes: usize = e.services.iter().map(|s| s.nodes.len()).sum();
             let tailscale = if e.tailscale.tablette.ip.is_some() {
-                " · Tailscale connecté"
+                ", Tailscale connecté"
             } else {
                 ""
             };
@@ -43,7 +38,7 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
                 Niveau::Up,
                 "Tout est opérationnel".to_string(),
                 format!(
-                    "{} · {}{tailscale}",
+                    "{}, {}{tailscale}",
                     pluriel(e.services.len(), "service"),
                     pluriel(nodes, "node")
                 ),
@@ -56,61 +51,64 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
                 .iter()
                 .map(|p| p.court.as_str())
                 .collect::<Vec<_>>()
-                .join(" · "),
+                .join(", "),
         ),
     };
+    let couleur_etat = couleur_nuit(niveau);
     let maintenant = format::local(c.maintenant);
     let horloge = column![
-        t(format::heure(&maintenant), 184)
+        t(format::heure(&maintenant), 176)
             .font(LEGER)
             .line_height(1.0)
-            .color(CLAIR),
-        t(majuscule_initiale(&jour_long(&maintenant)), 26).color(GRIS),
+            .color(nuit::TEXTE),
+        t(majuscule_initiale(&jour_long(&maintenant)), 24).color(nuit::SECONDAIRE),
     ]
-    .spacing(10)
+    .spacing(12)
     .align_x(Alignment::Center);
-    let couleur_titre = if niveau == Niveau::Up {
-        CLAIR
-    } else {
-        theme::couleur(niveau)
-    };
     let statut = column![
         row![
-            icone_etat(niveau, 36.0),
-            t(titre, 34).font(DEMI_GRAS).color(couleur_titre)
+            icone_etat_teinte(niveau, 32.0, couleur_etat),
+            t(titre, 30).font(DEMI_GRAS).color(if niveau == Niveau::Up {
+                nuit::TEXTE
+            } else {
+                couleur_etat
+            })
         ]
         .spacing(14)
         .align_y(Alignment::Center),
-        container(t(sous, 19).color(GRIS).center()).max_width(1000),
+        container(t(sous, 18).color(nuit::SECONDAIRE).center()).max_width(1000),
     ]
     .spacing(10)
     .align_x(Alignment::Center);
     let centre = container(
         column![horloge, statut]
-            .spacing(44)
+            .spacing(48)
             .align_x(Alignment::Center),
     )
     .center(Length::Fill)
     .padding(Padding::ZERO.top(40));
 
     let points = row(e.services.iter().map(|s| {
-        let couleur = if matches!(s.etat, Niveau::Warn | Niveau::Down) {
-            theme::couleur(s.etat)
-        } else {
-            GRIS
-        };
-        row![point_service(s.etat), t(s.nom.as_str(), 14).color(couleur)]
-            .spacing(8)
-            .align_y(Alignment::Center)
-            .into()
+        let probleme = matches!(s.etat, Niveau::Warn | Niveau::Down);
+        row![
+            point_teinte(s.etat, 10.0, couleur_nuit(s.etat)),
+            t(s.nom.as_str(), 14).color(if probleme {
+                couleur_nuit(s.etat)
+            } else {
+                nuit::SECONDAIRE
+            })
+        ]
+        .spacing(8)
+        .align_y(Alignment::Center)
+        .into()
     }))
-    .spacing(30)
+    .spacing(28)
     .wrap()
     .vertical_spacing(14)
     .align_x(Alignment::Center);
     let pied = column![
         container(points).center_x(Length::Fill),
-        t("Touche l'écran pour ouvrir le tableau de bord", 14).color(SOMBRE),
+        t("Touche l'écran pour ouvrir le tableau de bord", 14).color(nuit::DISCRET),
     ]
     .spacing(22)
     .align_x(Alignment::Center)
@@ -128,12 +126,11 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
             .into(),
     ];
     if niveau != Niveau::Up {
-        let barre = theme::couleur(niveau);
         couches.push(
             container(Space::new())
                 .width(Length::Fill)
                 .height(6)
-                .style(move |_: &Theme| theme::boite(barre, None, 0.0))
+                .style(move |_: &Theme| theme::boite(couleur_etat, 0.0))
                 .into(),
         );
     }
@@ -141,27 +138,17 @@ pub fn vue<'a>(c: &Contexte<'a>) -> Vue<'a> {
         .width(Length::Fill)
         .height(Length::Fill)
         .padding(0)
-        .style(theme::touchable(Some(FOND), None, 0.0, CLAIR))
+        .style(theme::touchable(Some(nuit::FOND), 0.0, nuit::TEXTE))
         .on_press(Message::Aller(Page::Accueil))
         .into()
 }
 
-fn point_service<'a>(etat: Niveau) -> Vue<'a> {
-    container(Space::new())
-        .width(12)
-        .height(12)
-        .style(move |_: &Theme| match etat {
-            Niveau::Warn | Niveau::Lent => theme::boite(theme::WARN, None, 3.0),
-            Niveau::Down => iced::widget::container::Style {
-                border: iced::Border {
-                    color: theme::DOWN,
-                    width: 2.0,
-                    radius: 6.0.into(),
-                },
-                ..Default::default()
-            },
-            Niveau::Inconnu | Niveau::Vide => theme::boite(theme::GRIS_NODE, None, 6.0),
-            Niveau::Up => theme::boite(theme::VERT_BARRE, None, 6.0),
-        })
-        .into()
+/// Teinte d'un etat sur fond noir.
+fn couleur_nuit(niveau: Niveau) -> Color {
+    match niveau {
+        Niveau::Up => nuit::UP,
+        Niveau::Warn | Niveau::Lent => nuit::WARN,
+        Niveau::Down => nuit::DOWN,
+        Niveau::Inconnu | Niveau::Vide => nuit::SECONDAIRE,
+    }
 }
