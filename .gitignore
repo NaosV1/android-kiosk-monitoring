@@ -4,7 +4,8 @@ monitoring/config.toml.*
 # donnees et journaux du serveur
 monitoring/data.db*
 monitoring/*.log
-__pycache__/
+# compilation Rust
+monitoring/target/
 # mises a jour : archives telechargees, sauvegarde, version installee (ecrite par la release)
 monitoring/.maj/
 monitoring/VERSION

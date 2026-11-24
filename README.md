@@ -1,8 +1,8 @@
 # Tablette de monitoring
 
 Une tablette Android transformée en écran de supervision tactile, verrouillé en plein écran.
-Debian tourne dans Termux (proot, **sans root**), un petit serveur Python contrôle les services,
-et l'interface s'affiche dans Chromium en mode kiosque.
+Debian tourne dans Termux (proot, **sans root**). Un seul binaire Rust contrôle les services et affiche
+l'interface tactile native, sans navigateur.
 
 Testé sur une Lenovo Tab K10 (Android 12, écran 1920 × 1200).
 
@@ -35,7 +35,7 @@ Testé sur une Lenovo Tab K10 (Android 12, écran 1920 × 1200).
 - **Mises à jour** : chaque push sur `main` est vérifié puis publié en release. La tablette télécharge
   la release et l'installe quand on appuie sur « Mettre à jour » (avec confirmation). Voir [plus bas](#mises-à-jour-cicd).
 
-Côté serveur, aucune dépendance : uniquement la bibliothèque standard de Python 3.11+.
+Rien à installer côté exécution : le binaire contient le serveur, l'interface et SQLite.
 
 ## Comment c'est monté
 
@@ -44,22 +44,30 @@ Android
 ├── Termux ............. sshd (8022 : Termux, 2222 : Debian), Termux:Boot au démarrage
 │   ├── Termux:X11 ..... serveur X plein écran (:0)
 │   └── proot Debian
-│       ├── kiosk-session ... gestionnaire de fenêtres + relance de l'appli
-│       ├── serveur.py ...... contrôles, historique, API JSON (127.0.0.1:8080)
-│       └── Chromium ........ --kiosk sur l'interface web
+│       ├── kiosk-session ........ gestionnaire de fenêtres + relance de l'appli
+│       ├── monitoring serveur ... contrôles, historique, mises à jour, API JSON (127.0.0.1:8080)
+│       └── monitoring ecran ..... interface tactile plein écran, cliente de l'API
 └── Kiosque (device owner) ... verrouillage sur Termux:X11 (lock task)
 ```
 
+L'interface est dessinée par le processeur (iced avec le moteur de rendu logiciel tiny-skia) :
+la tablette n'a pas d'accélération GPU sous proot.
+
 ```
-monitoring/            serveur, interface web et exemple de configuration
-  serveur.py           contrôles + API + fichiers statiques
-  web/                 interface (HTML/CSS/JS, sans framework)
-  lancer.sh            démarre le serveur puis Chromium en kiosque
+monitoring/            le monitoring (Rust) : un binaire, deux sous-commandes
+  src/api.rs           contrat JSON entre le serveur et l'écran
+  src/config.rs        lecture de config.toml
+  src/controles/       contrôles HTTP, TCP, ping, DNS, route Tailscale
+  src/moniteur/        états, incidents, historique SQLite, rapports
+  src/maj.rs           mises à jour depuis les releases GitHub
+  src/serveur_http.rs  API JSON
+  src/ecran/           interface tactile
+  tests/               serveur réel, lancer.sh (passage de version, retour arrière)
+  lancer.sh            démarre le serveur puis l'écran, revient à la version précédente si besoin
   config.example.toml  exemple commenté de toutes les options
 tablette/termux/       scripts côté Termux (démarrage, SSH, commande kiosk)
 tablette/debian/       scripts côté Debian (session X, relance de l'appli)
-kiosque/               sources de l'appli Android de verrouillage (compilée sur la tablette)
-ci/verifier.py         vérifications lancées par la CI (et utilisables en local)
+kiosque/               sources de l'appli Android de verrouillage (Java, compilée sur la tablette)
 .github/workflows/     CI : vérifications puis release à chaque push sur main
 VERSION                version majeure.mineure des releases (le dernier chiffre est ajouté par la CI)
 ```
@@ -98,7 +106,7 @@ La connexion par mot de passe est désactivée.
 
 ```sh
 proot-distro login debian
-apt install python3 chromium fonts-inter fonts-jetbrains-mono curl \
+apt install fonts-inter fonts-jetbrains-mono libxkbcommon-x11-0 curl \
             matchbox-window-manager x11-utils x11-xserver-utils openssh-server locales
 ```
 
@@ -106,10 +114,14 @@ apt install python3 chromium fonts-inter fonts-jetbrains-mono curl \
 |---|---|
 | `tablette/debian/kiosk-session`, `kiosk-restart` | `/usr/local/bin/` |
 | `tablette/debian/kiosk-app.sh` | `/root/kiosk-app.sh` |
-| `monitoring/` | `/root/monitoring/` |
+
+Le monitoring s'installe depuis la dernière [release](https://github.com/NaosV1/android-kiosk-monitoring/releases)
+(binaire Linux aarch64) :
 
 ```sh
-cd /root/monitoring
+mkdir -p /root/monitoring && cd /root/monitoring
+curl -fLO https://github.com/NaosV1/android-kiosk-monitoring/releases/download/vX.Y.N/monitoring-X.Y.N.tar.gz
+tar -xzf monitoring-X.Y.N.tar.gz --strip-components=1 && rm monitoring-X.Y.N.tar.gz
 cp config.example.toml config.toml   # puis mettre tes services
 ```
 
@@ -147,9 +159,10 @@ ssh -p 8022 <tablette> kiosk release       # retire définitivement le mode kios
 ssh -p 8022 <tablette> kiosk plein-ecran   # remasque les barres Android
 ```
 
-Pour voir l'interface depuis un PC : `ssh -L 8080:127.0.0.1:8080 -p 2222 root@<tablette>`, puis http://localhost:8080.
+Pour voir l'interface depuis un PC : `ssh -L 8080:127.0.0.1:8080 -p 2222 root@<tablette>`, puis, dans
+`monitoring/` sur le PC, `cargo run --release -- ecran http://127.0.0.1:8080`.
 
-Journaux : `/root/monitoring/serveur.log` et `chromium.log` (Debian), `~/linux-start.log` et `~/kiosk.log` (Termux).
+Journaux : `/root/monitoring/serveur.log` et `ecran.log` (Debian), `~/linux-start.log` et `~/kiosk.log` (Termux).
 
 ## Configuration
 
@@ -175,11 +188,11 @@ push sur main ──► GitHub Actions : vérifications ──► release vX.Y.N
                                          bouton « Mettre à jour » + confirmation ──► installation
 ```
 
-**À chaque push sur `main`**, le workflow [`ci.yml`](.github/workflows/ci.yml) vérifie :
+**À chaque push sur `main`**, le workflow [`ci.yml`](.github/workflows/ci.yml) vérifie, sur une machine
+aarch64 avec la même Debian que la tablette :
 
-- **Python** : le serveur compile, la config d'exemple se charge, et un vrai serveur démarre et répond
-  ([`ci/verifier.py`](ci/verifier.py)) ;
-- **JavaScript** : la syntaxe de l'interface ;
+- **Rust** : formatage, `clippy` sans avertissement, tests (dont un vrai serveur qui démarre et répond,
+  et les scénarios de `lancer.sh` : passage de version et retour arrière), puis compilation du binaire ;
 - **shell** : la syntaxe de tous les scripts ;
 - **Java** : l'appli Kiosque compile contre le SDK Android.
 
@@ -188,7 +201,8 @@ une release `vX.Y.N` :
 
 - `X.Y` vient du fichier `VERSION`. Modifie-le pour changer de version majeure ou mineure.
 - `N` est le numéro du run de la CI.
-- La release contient `monitoring-X.Y.N.tar.gz` et `SHA256SUMS`.
+- La release contient `monitoring-X.Y.N.tar.gz` et `SHA256SUMS`. Le contenu de l'archive est un contrat
+  avec les tablettes déjà installées : il est décrit en tête de [`ci.yml`](.github/workflows/ci.yml).
 
 Un push qui ne touche que le README ne crée pas de release.
 
@@ -203,16 +217,21 @@ Quand une release plus récente existe, la tablette :
 
 **Rien n'est installé sans appui sur « Mettre à jour » puis confirmation.** À l'installation :
 
+- le nouveau binaire est d'abord lancé une fois (`--version`) : s'il ne s'exécute pas sur la tablette,
+  rien n'est remplacé ;
 - `config.toml`, `data.db` et les journaux ne sont pas touchés ;
 - la version en place est sauvegardée dans `monitoring/.maj/precedente/` ;
 - l'appli redémarre, puis affiche « Mise à jour installée ».
 
-Si la nouvelle version ne démarre pas, `lancer.sh` remet automatiquement la précédente et la page
-*Mise à jour* l'indique. Pour revenir à la main à la version précédente :
+Si la nouvelle version ne démarre pas (serveur qui ne répond pas, serveur ou écran qui s'arrête dans les
+15 premières secondes), `lancer.sh` remet automatiquement la précédente et la page *Mise à jour* indique
+pourquoi. Pour revenir à la main à la version précédente :
 
 ```sh
-cd /root/monitoring && cp -p .maj/precedente/{serveur.py,lancer.sh,VERSION} . \
-  && rm -rf web && cp -rp .maj/precedente/web web && kiosk-restart
+cd /root/monitoring
+for f in .maj/precedente/*; do [ -f "$f" ] && cp -p --remove-destination "$f" .; done
+[ -d .maj/precedente/web ] && rm -rf web && cp -rp .maj/precedente/web web   # retour à la version Python
+kiosk-restart
 ```
 
 Configuration (section `[mise_a_jour]` de `config.toml`) :
@@ -222,6 +241,64 @@ Configuration (section `[mise_a_jour]` de `config.toml`) :
 depot = "NaosV1/android-kiosk-monitoring"   # "" = désactivé
 verifier_toutes_les_heures = 6
 ```
+
+### Passage de la version Python (1.0.x) à la version Rust (2.x)
+
+La première release Rust s'installe par le bouton « Mettre à jour » de la version Python, comme les
+autres : l'archive contient ce que l'installateur Python exige, et le nouveau `lancer.sh` termine
+l'installation en prenant le binaire dans l'archive déjà vérifiée. La configuration et l'historique sont
+repris tels quels.
+
+**Avant d'appuyer sur « Mettre à jour »**, installer la seule bibliothèque nouvelle de l'écran :
+
+```sh
+ssh -p 2222 root@<tablette> apt install -y libxkbcommon-x11-0
+```
+
+Sans elle, l'écran Rust ne démarre pas : `lancer.sh` remet alors la version Python et la page *Mise à jour*
+affiche la commande à lancer. Python et Chromium peuvent rester installés : ils servent au retour arrière.
+
+**Debian 12 (bookworm)** : l'installateur Python 1.0.x utilise une option de `tarfile` absente de Python 3.11.2,
+la version de Debian 12. Il télécharge et vérifie la release, mais « Mettre à jour » échoue
+(`Installation impossible : … 'filter'`) sans rien modifier. Debian 13 (trixie, Python 3.13) n'est pas concerné.
+Pour savoir ce qu'il en est : `ssh -p 2222 root@<tablette> 'cat /etc/debian_version; python3 --version'`.
+Sur Debian 12, faire à la main ce que l'installateur aurait fait, une fois la release téléchargée par la tablette
+(page *Mise à jour* : « Nouvelle version disponible ») ; `lancer.sh` termine ensuite l'installation, avec le
+même retour arrière automatique :
+
+```sh
+cd /root/monitoring && V=X.Y.N                       # la version proposée par la tablette
+mkdir -p .maj/precedente && cp -p serveur.py lancer.sh config.example.toml VERSION .maj/precedente/ \
+  && rm -rf .maj/precedente/web && cp -rp web .maj/precedente/web
+echo "$V" > .maj/a-confirmer
+tar -xzf ".maj/monitoring-$V.tar.gz" --strip-components=1 \
+  "monitoring-$V/lancer.sh" "monitoring-$V/VERSION" "monitoring-$V/config.example.toml"
+kiosk-restart
+```
+
+Les mises à jour suivantes sont faites par la version Rust, qui n'a pas ce problème.
+
+Test facultatif avant la mise à jour, sans rien changer à l'installation : l'écran Rust sait afficher le
+serveur Python en place.
+
+```sh
+ssh -p 2222 root@<tablette>
+cd /tmp && curl -fLO https://github.com/NaosV1/android-kiosk-monitoring/releases/download/vX.Y.N/monitoring-X.Y.N.tar.gz
+tar -xzf monitoring-X.Y.N.tar.gz && cd monitoring-X.Y.N
+./monitoring --version                                   # le binaire s'exécute sur la tablette
+DISPLAY=:0 ./monitoring ecran http://127.0.0.1:8080      # l'écran Rust s'ouvre (Ctrl+C pour le fermer)
+```
+
+## Développement
+
+```sh
+cd monitoring
+cargo test                                               # tests unitaires et d'intégration
+MONITORING_CONFIG=config.example.toml MONITORING_DB=/tmp/data.db cargo run -- serveur
+cargo run -- ecran http://127.0.0.1:8080                 # l'écran sur le serveur ci-dessus
+```
+
+Les ICMP « datagramme » (ping sans root) doivent être autorisés par `net.ipv4.ping_group_range` sous Linux.
 
 ## Tailscale (facultatif)
 
@@ -238,11 +315,13 @@ Debian tourne dans proot, sans root Android :
 
 - pas de systemd : tout est lancé par des scripts ;
 - pas de ports en dessous de 1024 ;
-- pas de Docker ni d'accélération GPU ;
-- Chromium doit être lancé avec `--no-sandbox`.
+- pas de Docker ni d'accélération GPU : l'interface est rendue par le processeur.
 
-Termux:X11 laisse parfois les barres Android visibles quand la fenêtre de Chromium est recréée. `plein-ecran-auto` les
+Termux:X11 laisse parfois les barres Android visibles quand la fenêtre de l'appli est recréée. `plein-ecran-auto` les
 remasque à chaque relance de l'appli.
+
+L'appli Kiosque reste en Java : Android exige une classe Java pour le composant *device owner*
+(`DeviceAdminReceiver`), et changer ce composant obligerait à réinitialiser la tablette.
 
 ## Licence
 

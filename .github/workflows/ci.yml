@@ -1,5 +1,14 @@
 # A chaque push sur main : verifications, puis release si le code du monitoring a change.
 # La tablette voit la release, la telecharge, et propose "Mettre a jour".
+#
+# Contrat d'une release, lu par les tablettes deja installees (y compris par l'installateur des
+# versions Python 1.0.x, qui ne peut plus changer) :
+#   - tag vX.Y.N, fichiers monitoring-X.Y.N.tar.gz (30 Mio au plus) et SHA256SUMS ;
+#   - l'archive contient le dossier monitoring-X.Y.N/ avec monitoring (binaire Linux aarch64),
+#     lancer.sh, config.example.toml et VERSION ;
+#   - plus serveur.py et web/index.html, vides : l'installateur Python 1.0.x refuse une archive
+#     sans eux. Il n'installe que serveur.py, lancer.sh, config.example.toml, VERSION et web/,
+#     puis relance l'appli ; le nouveau lancer.sh prend alors le binaire dans l'archive.
 name: CI
 
 on:
@@ -12,21 +21,51 @@ permissions:
   contents: read
 
 jobs:
-  verifier:
-    name: Vérifications
-    runs-on: ubuntu-latest
+  monitoring:
+    name: Monitoring (Rust)
+    # meme architecture (aarch64) et meme Debian (glibc 2.36) que la tablette
+    runs-on: ubuntu-24.04-arm
+    container: rust:1.100-bookworm
+    defaults:
+      run:
+        working-directory: monitoring
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - uses: Swatinem/rust-cache@v2
         with:
-          python-version: "3.13"
+          workspaces: monitoring
 
-      - name: Python (compilation, config d'exemple, démarrage du serveur)
-        run: python ci/verifier.py
+      - name: Outils
+        run: rustup component add rustfmt clippy
 
-      - name: JavaScript (syntaxe)
-        run: node --check monitoring/web/app.js
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Tests (dont serveur reel et lancer.sh)
+        run: cargo test --locked
+
+      - name: Binaire de release
+        run: |
+          export MONITORING_VERSION="$(tr -d ' \r\n' < ../VERSION).${GITHUB_RUN_NUMBER}"
+          cargo build --release --locked
+          test "$(target/release/monitoring --version)" = "$MONITORING_VERSION"
+          ls -la target/release/monitoring
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: binaire
+          path: monitoring/target/release/monitoring
+          retention-days: 7
+
+  scripts:
+    name: Scripts et appli Kiosque
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
 
       - name: Scripts shell (syntaxe)
         run: |
@@ -48,7 +87,7 @@ jobs:
 
   release:
     name: Release
-    needs: verifier
+    needs: [monitoring, scripts]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency: release
@@ -71,6 +110,12 @@ jobs:
             echo "oui=oui" >> "$GITHUB_OUTPUT"
           fi
 
+      - uses: actions/download-artifact@v8
+        if: steps.publier.outputs.oui == 'oui'
+        with:
+          name: binaire
+          path: binaire
+
       - name: Archive
         id: archive
         if: steps.publier.outputs.oui == 'oui'
@@ -78,11 +123,17 @@ jobs:
           set -euo pipefail
           VERSION="$(tr -d ' \r\n' < VERSION).${GITHUB_RUN_NUMBER}"
           NOM="monitoring-$VERSION"
-          mkdir -p "dist/$NOM"
-          cp monitoring/serveur.py monitoring/lancer.sh monitoring/config.example.toml "dist/$NOM/"
-          cp -r monitoring/web "dist/$NOM/web"
+          mkdir -p "dist/$NOM/web"
+          install -m 755 binaire/monitoring monitoring/lancer.sh "dist/$NOM/"
+          install -m 644 monitoring/config.example.toml "dist/$NOM/"
           echo "$VERSION" > "dist/$NOM/VERSION"
+          # exiges par l'installateur des versions Python 1.0.x (voir en tete du fichier)
+          : > "dist/$NOM/serveur.py"
+          : > "dist/$NOM/web/index.html"
           tar -C dist --owner=0 --group=0 --numeric-owner -czf "dist/$NOM.tar.gz" "$NOM"
+          TAILLE=$(stat -c %s "dist/$NOM.tar.gz")
+          echo "archive : $TAILLE octets"
+          test "$TAILLE" -le $((30 * 1024 * 1024))
           (cd dist && sha256sum "$NOM.tar.gz" > SHA256SUMS && cat SHA256SUMS)
           PREC="${{ steps.publier.outputs.precedente }}"
           { echo "Modifications :"; echo

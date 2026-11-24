@@ -9,7 +9,8 @@ seuil_lent = 1000          # au-dela (en ms), la node est consideree comme lente
 echecs_avant_panne = 2     # echecs d'affilee avant de declarer une node hors ligne
 veille_minutes = 5         # passage en ecran de veille sans toucher l'ecran (0 = jamais)
 verifier_certificats = true
-# ecoute = "0.0.0.0"       # decommente pour ouvrir l'interface depuis ton PC : http://<IP tablette>:8080
+# ecoute = "0.0.0.0"       # decommente pour joindre l'API depuis ton PC (aucune authentification :
+#                          # reseau de confiance seulement) : monitoring ecran http://<IP tablette>:8080
 # port = 8080
 
 [tailscale]

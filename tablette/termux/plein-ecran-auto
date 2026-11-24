@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Remasque les barres Android a chaque (re)lancement de l'appli plein ecran :
-# Termux:X11 les laisse parfois visibles quand la fenetre de Chromium est recreee.
+# Termux:X11 les laisse parfois visibles quand la fenetre de l'appli est recreee.
 # Lance par ~/bin/linux-start ; journal : ~/plein-ecran.log
 F=$PREFIX/tmp/kiosk-app.pid      # ecrit par la boucle kiosk-session (Debian, /tmp partage)
 dernier=""
@@ -8,7 +8,7 @@ while true; do
   pid=$(cat "$F" 2>/dev/null)
   if [ -n "$pid" ] && [ "$pid" != "$dernier" ]; then
     dernier=$pid
-    sleep 12                     # laisse Chromium ouvrir sa fenetre
+    sleep 12                     # laisse l'appli ouvrir sa fenetre
     "$PREFIX/bin/kiosk" plein-ecran >/dev/null
     echo "$(date '+%F %T') plein ecran reapplique (appli $pid)"
   fi

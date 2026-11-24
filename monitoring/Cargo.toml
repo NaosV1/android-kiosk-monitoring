@@ -1,0 +1,31 @@
+[package]
+name = "monitoring"
+# Le numero des releases ne vient pas d'ici : la CI le fixe (VERSION + numero du run)
+# dans la variable MONITORING_VERSION au moment de compiler. Sans elle : "dev".
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+dns-lookup = "4"
+flate2 = "1"
+iced = { version = "0.14", default-features = false, features = ["tiny-skia", "x11", "canvas", "thread-pool", "crisp", "web-colors"] }
+rusqlite = { version = "0.43", features = ["bundled"] }
+# meme version que celle d'ureq : sert a reconnaitre les erreurs de certificat
+rustls = { version = "0.23", default-features = false }
+rustls-native-certs = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+socket2 = "0.6"
+tar = "0.4"
+tiny_http = "0.12"
+# ordre du fichier conserve : le premier champ JSON en ecart signale est le premier de la config
+toml = { version = "1", features = ["preserve_order"] }
+unicode-normalization = "0.1"
+ureq = { version = "3.5", default-features = false, features = ["rustls"] }
+
+[profile.release]
+strip = true
